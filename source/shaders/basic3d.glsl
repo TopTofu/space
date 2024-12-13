@@ -34,18 +34,21 @@ in vec3 normal;
 in vec4 world_position;
 in vec4 clip_position;
 
-uniform sampler2D tex;
+uniform vec4 color;
 
 out vec4 out_color;
 
-vec4 face_colors[3] = vec4[3](
-    vec4(0.1, 0.1, 0.1, 1),
-    vec4(0.2, 0.2, 0.2, 1),
-    vec4(0.3, 0.3, 0.3, 1)
-);
-
 void main() {
-    int id = gl_PrimitiveID;
-    int color_id = id / 2;
-    out_color = face_colors[color_id % 3];
+    vec3 ndc_pos = clip_position.xyz / clip_position.w;
+    vec3 dx = dFdx(ndc_pos);
+    vec3 dy = dFdy(ndc_pos);
+    
+    vec3 N = normalize(cross(dx, dy));
+    N *= sign(N.z);
+    
+    vec3 L = vec3(1, 4, 1);
+    float NdotL = dot(N, L);
+    
+    vec3 diffuse_color = color.xyz * NdotL;
+    out_color = vec4(diffuse_color, 1.0);
 }

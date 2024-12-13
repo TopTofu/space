@@ -114,10 +114,8 @@ void init_renderer(game_state* state) {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
 
     glEnable(GL_TEXTURE_2D);
 
@@ -147,11 +145,18 @@ void init_renderer(game_state* state) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         
+        glGenTextures(1, &renderer.scene_depth_buffer);
+        glBindTexture(GL_TEXTURE_2D, renderer.scene_depth_buffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_w, window_h, 0, 
+            GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+        
         glGenFramebuffers(1, &renderer.scene_framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, renderer.scene_framebuffer);
         
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 
             renderer.scene_texture.id, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 
+            renderer.scene_depth_buffer, 0);
             
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
@@ -547,11 +552,6 @@ void _shader_bind_texture(shader_info* shader, texture_info* texture, char* name
     glBindTexture(args.target, texture->id);
 }
 
-static inline vec2 screen_to_ndc(vec2 screen) {
-    return vec2(2.0 * screen.x                                     / global->platform->window_width - 1.0,
-                2.0 * (global->platform->window_height - screen.y) / global->platform->window_height - 1.0);
-}
-
 /*
     === render ui ===
 */
@@ -585,6 +585,39 @@ static void ui_quad(int x, int y, int w, int h, color c) {
 /*
     === render mesh ===
 */
+typedef struct {
+    vec3 translation;
+    vec3 scale_v;
+    quat rotation;
+    float scale;
+    color color;
+} render_mesh_args;
+#define render_mesh_basic(mesh, ...) _render_mesh_basic(mesh, (render_mesh_args) {\
+    .translation = vec3(0, 0, 0), .scale_v = vec3(1, 1, 1), .rotation = unit_quat(), .scale = 1., .color = (color)RGB_GRAY(200),\
+    __VA_ARGS__ })
+
+static void _render_mesh_basic(mesh m, render_mesh_args args) {
+    shader_info* shader = get_shader("basic3d");
+    glUseProgram(shader->id);
+    
+    mat4 model = make_model_matrix(vec_add(args.translation, m.translation), 
+                                   vec_mul(vec_mul(args.scale_v, args.scale), m.scale), 
+                                   quat_mul_quat(args.rotation, m.rotation));
+    mat4 view = global->camera.view_matrix;
+    mat4 proj = global->renderer.projection_matrix;
+    
+    shader_set_uniform(shader, "model", model);
+    shader_set_uniform(shader, "view", view);
+    shader_set_uniform(shader, "projection", proj);
+    shader_set_uniform(shader, "color", args.color);
+    
+    glBindVertexArray(m.vao);
+    glDrawElements(m.primitive, m.index_count, GL_UNSIGNED_INT, 0);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
 static void render_mesh(mesh m, shader_info* shader) {
     glUseProgram(shader->id);
     

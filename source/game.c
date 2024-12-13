@@ -80,7 +80,7 @@ static void add_event(platform_info* platform, event_info e) {
     }
 }
 
-void update_time_info(time_info* time, float dt_ms) {
+static void update_time_info(time_info* time, float dt_ms) {
     time->realtime_dt_ms = dt_ms;
     time->realtime_dt    = time->realtime_dt_ms / 1000.f;
     
@@ -98,11 +98,106 @@ void update_time_info(time_info* time, float dt_ms) {
     }
 }
 
+static inline vec2 screen_to_ndc(vec2 screen) {
+    return vec2(2.0 * screen.x                                     / global->platform->window_width - 1.0,
+                2.0 * (global->platform->window_height - screen.y) / global->platform->window_height - 1.0);
+}
+
+static inline float distance_ray_point(vec3 ray_origin, vec3 ray_dir, vec3 p) {
+    return vec_len(vec_cross(ray_dir, vec_sub(p, ray_origin)));
+}
+
+static inline vec3 intersect_ray_point(vec3 ray_origin, vec3 ray_dir, vec3 p) {
+    return vec_add(ray_origin, vec_mul(ray_dir, vec_dot(ray_dir, vec_sub(p, ray_origin))));
+}
+
+static vec3 ray_from_screen(vec2 screen) {
+    vec2 ndc = screen_to_ndc(screen);
+    vec4 clip_space = vec4(ndc.x, ndc.y, -1, 1);
+    
+    mat4 inverse_projection = mat4_inv(global->renderer.projection_matrix);
+    
+    vec4 temp = vec_transform(inverse_projection, clip_space);
+    vec4 eye_space = vec4(temp.x, temp.y, -1, 0);
+    
+    mat4 inverse_view = mat4_inv(global->camera.view_matrix);
+    vec3 result = vec_transform(inverse_view, eye_space).xyz;
+    
+    result = vec_norm(result);
+    
+    return result;
+}
+
+static float intersect_ray_plane(vec3 ray_origin, vec3 ray_dir, vec3 plane_origin, vec3 plane_normal) {
+    float dot = vec_dot(ray_dir, plane_normal);
+    if (ABS(dot) == 0) { return -1.; }
+
+    float result = vec_dot(vec_sub(plane_origin, ray_origin), plane_normal) / dot;
+
+    return result;
+}
+
+typedef struct {
+    vec3 a, b;
+} collision_quad;
+
+// @Speed: i feel like most branches could go.. 
+
+// @Info: we get the intersection between the ray and the plan the quad is on 
+//        and check if the intersection point is between the quads defining points
+static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad quad) {
+    // @Note: since the quad is axis-aligned, the normal is the axis where quad.min and quad.max are the same
+    vec3 plane_normal = quad.a.x == quad.b.x ? vec3(1, 0, 0) :
+                        quad.a.y == quad.b.y ? vec3(0, 1, 0) :
+                        vec3(0, 0, 1);
+                        
+    float distance_to_plane = intersect_ray_plane(ray_origin, ray_dir, quad.a, plane_normal);
+    vec3 intersection = vec_add(vec_mul(ray_dir, distance_to_plane), ray_origin);
+    
+    bool in_quad = false;
+    
+    if (plane_normal.x == 1.f) {
+        float min_y = quad.a.y < quad.b.y ? quad.a.y : quad.b.y;
+        float min_z = quad.a.z < quad.b.z ? quad.a.z : quad.b.z;
+        
+        float max_y = quad.a.y > quad.b.y ? quad.a.y : quad.b.y;
+        float max_z = quad.a.z > quad.b.z ? quad.a.z : quad.b.z;
+        
+        in_quad = (min_y <= intersection.y) && (min_z <= intersection.z) 
+            && (max_y >= intersection.y) && (max_z >= intersection.z);
+    } else if (plane_normal.y == 1.f) {
+        float min_x = quad.a.x < quad.b.x ? quad.a.x : quad.b.x;
+        float min_z = quad.a.z < quad.b.z ? quad.a.z : quad.b.z;
+        
+        float max_x = quad.a.x > quad.b.x ? quad.a.x : quad.b.x;
+        float max_z = quad.a.z > quad.b.z ? quad.a.z : quad.b.z;
+        
+        in_quad = (min_x <= intersection.x) && (min_z <= intersection.z) 
+            && (max_x >= intersection.x) && (max_z >= intersection.z);
+    } else {
+        float min_x = quad.a.x < quad.b.x ? quad.a.x : quad.b.x;
+        float min_y = quad.a.y < quad.b.y ? quad.a.y : quad.b.y;
+        
+        float max_x = quad.a.x > quad.b.x ? quad.a.x : quad.b.x;
+        float max_y = quad.a.y > quad.b.y ? quad.a.y : quad.b.y;
+        
+        in_quad = (min_x <= intersection.x) && (min_y <= intersection.y) 
+            && (max_x >= intersection.x) && (max_y >= intersection.y);
+    }     
+
+    if (in_quad) { return distance_to_plane; }
+    return -1;
+}
+
+
+
 
 // === source includes
 #include "render.c"
+#include "camera.c"
 #include "input.c"
 #include "ui.c"
+#include "spacecraft.c"
 
 
 static void game_init_memory(platform_info* platform) {
@@ -125,14 +220,18 @@ static void game_init_memory(platform_info* platform) {
     
     init_renderer(state);    
     load_all_shaders(state, "../source/shaders/");
+
+    camera_set_default(state);
+
+    ship.base_component = &ship.components[0];
+    make_ship_component(ship.base_component);
+    ship.component_count++;
     
-    state->camera.position = vec3(0, 0, 0);
-    state->camera.up = vec3(0, 1, 0);
-    state->camera.right = vec3(1, 0, 0);
-    state->camera.forward = vec3(0, 0, -1);
-    state->camera.fov = 90;
-    state->camera.far = 100;
-    state->camera.near = 0.1;
+    ship.translation.z = 5;
+    
+    // ship_add_component(&ship, 4, &ship.components[0].connections[1]);
+    // ship_add_component(&ship, 0, &ship.components[0].connections[3]);
+    // ship_add_component(&ship, 4, &ship.components[1].connections[1]);
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -157,16 +256,16 @@ static void game_update_and_render(platform_info* platform) {
     state->camera.view_matrix = make_view_matrix(state->camera.position, 
         state->camera.forward, state->camera.up, state->camera.right);
     
-    state->renderer.cube_mesh.translation.z = 5 + sin(state->time.in_seconds);
-    state->renderer.cube_mesh.rotation = quat_mul_quat(quat_from_axis_angle(vec_norm(vec3(1, 1, 1)), .002), 
-        state->renderer.cube_mesh.rotation);
-    
     { // === render into scene texture
         glBindFramebuffer(GL_FRAMEBUFFER, state->renderer.scene_framebuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         {   
-            render_mesh(state->renderer.cube_mesh, get_shader("basic3d"));
+            render_ship(ship);
+            
+            glDisable(GL_DEPTH_TEST);
+            component_at_cursor();
+            glEnable(GL_DEPTH_TEST);
         }
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -186,6 +285,7 @@ static void game_update_and_render(platform_info* platform) {
     }
 }
 
-void game_resize_window(platform_info* platform) {
+static void game_resize_window(platform_info* platform) {
+    // @Todo: resize framebuffer
     glViewport(0, 0, platform->window_width, platform->window_height);
 }

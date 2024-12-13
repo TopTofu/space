@@ -75,6 +75,6 @@ void main() {
     sobel = step(0.1, sobel);
     out_color = vec4(sobel, sobel, sobel, 1) * green;
 
-    // out_color = scene;
+   out_color = scene;
 }
 

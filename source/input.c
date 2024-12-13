@@ -33,6 +33,48 @@ bool default_key_down_proc(game_state* state, key_event event) {
         case KEY_MOUSE_M: {
             state->mouse.middle_down_this_frame = true;
         } break;
+        
+        case KEY_D: {
+            camera_move_right(state, 0.1);
+        } break;
+        case KEY_A: {
+            camera_move_right(state, -0.1);
+        } break;
+        
+        case KEY_W: {
+            camera_move_forward(state, 0.1);
+        } break;
+        case KEY_S: {
+            camera_move_forward(state, -0.1);
+        } break;
+        
+        case KEY_SPACE: {
+            camera_move_up(state, 0.1);
+        } break;
+        case KEY_SHIFT: {
+            camera_move_up(state, -0.1);
+        } break;
+        
+        case KEY_UP: {
+            camera_rotate_x(state, 5);
+        } break;
+        case KEY_DOWN: {
+            camera_rotate_x(state, -5);
+        } break;
+        
+        case KEY_RIGHT: {
+            camera_rotate_y(state, 5);
+        } break;
+        case KEY_LEFT: {
+            camera_rotate_y(state, -5);
+        } break;
+        
+        case KEY_E: {
+            camera_rotate_around_y(state, vec3(0, state->camera.y, 5), 500);
+        } break;
+        case KEY_Q: {
+            camera_rotate_around_y(state, vec3(0, state->camera.y, 5), -500);
+        } break;
     }
     
     // if (event.code == state->camera.key_left) { state->camera.left = true; } 

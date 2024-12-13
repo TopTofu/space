@@ -50,6 +50,7 @@ typedef struct {
     int polygon_mode;
     
     texture_info scene_texture;
+    u32 scene_depth_buffer;
     u32 scene_framebuffer;
 } renderer_info;
 
