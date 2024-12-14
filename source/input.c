@@ -18,6 +18,8 @@ inline bool keymap_get(game_state* state, u32 key) {
     return (state->keymap[key / 8]) & mask;
 }
 
+int comp_id = 0;
+
 bool default_key_down_proc(game_state* state, key_event event) {
     bool ctrl = keymap_get(state, KEY_CONTROL);
     bool shift = keymap_get(state, KEY_SHIFT);
@@ -75,6 +77,17 @@ bool default_key_down_proc(game_state* state, key_event event) {
         case KEY_Q: {
             camera_rotate_around_y(state, vec3(0, state->camera.y, 5), -500);
         } break;
+        
+        case KEY_PERIOD: {
+            debug_index_count++;
+        } break;
+        case KEY_COMMA: {
+            debug_index_count--;
+        } break;
+        
+        case KEY_1: { comp_id = COMPONENT_CUBE; } break;
+        case KEY_2: { comp_id = COMPONENT_THRUSTER; } break;
+        
     }
     
     // if (event.code == state->camera.key_left) { state->camera.left = true; } 

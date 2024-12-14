@@ -825,6 +825,10 @@ static inline quat quat_nlerp(quat left, float t, quat right) {
     return vec_norm(result);
 }
 
+static inline vec3 quat_rotate_vec(quat q, vec3 v) {
+    return vec_transform(quat_to_mat(q), v);
+}
+
 static inline quat quat_slerp(quat left, float t, quat right) {
     quat result;
     

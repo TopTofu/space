@@ -197,6 +197,7 @@ typedef struct game_state game_state;
 #include "render.h"
 #include "input.h"
 #include "ui.h"
+#include "ships.h"
 
 typedef struct game_state {
     platform_info* platform;

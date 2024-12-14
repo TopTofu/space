@@ -3,6 +3,9 @@
 #include "game.h"
 #include "memory.c"
 
+int debug_index_count = 12;
+
+
 // === utils
 #define push_transient(size) push_size(&global->transient_arena, size);
 #define push_permanent(size) push_size(&global->permanent_arena, size);
@@ -137,11 +140,7 @@ static float intersect_ray_plane(vec3 ray_origin, vec3 ray_dir, vec3 plane_origi
     return result;
 }
 
-typedef struct {
-    vec3 a, b;
-} collision_quad;
-
-// @Speed: i feel like most branches could go.. 
+// @Speed: i feel like most of the branches could go.. 
 
 // @Info: we get the intersection between the ray and the plan the quad is on 
 //        and check if the intersection point is between the quads defining points
@@ -197,7 +196,9 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 #include "camera.c"
 #include "input.c"
 #include "ui.c"
-#include "spacecraft.c"
+#include "ships.c"
+
+mesh m;
 
 
 static void game_init_memory(platform_info* platform) {
@@ -223,15 +224,15 @@ static void game_init_memory(platform_info* platform) {
 
     camera_set_default(state);
 
+    init_ship_component_types(state);
+    
     ship.base_component = &ship.components[0];
-    make_ship_component(ship.base_component);
+    make_ship_component(ship.base_component, COMPONENT_CUBE);
     ship.component_count++;
     
     ship.translation.z = 5;
     
-    // ship_add_component(&ship, 4, &ship.components[0].connections[1]);
-    // ship_add_component(&ship, 0, &ship.components[0].connections[3]);
-    // ship_add_component(&ship, 4, &ship.components[1].connections[1]);
+    m = make_thruster_mesh();
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -255,6 +256,8 @@ static void game_update_and_render(platform_info* platform) {
     
     state->camera.view_matrix = make_view_matrix(state->camera.position, 
         state->camera.forward, state->camera.up, state->camera.right);
+        
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     { // === render into scene texture
         glBindFramebuffer(GL_FRAMEBUFFER, state->renderer.scene_framebuffer);
@@ -262,14 +265,16 @@ static void game_update_and_render(platform_info* platform) {
         
         {   
             render_ship(ship);
+            component_place_preview(comp_id);
             
-            glDisable(GL_DEPTH_TEST);
-            component_at_cursor();
-            glEnable(GL_DEPTH_TEST);
+            // render_mesh_basic(m, .translation = vec3(0, 0, 5));
+            //.rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));
         }
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
     if (1) { // === render scene texture
         shader_info* shader = get_shader("scene");

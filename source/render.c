@@ -33,6 +33,22 @@ static u32 make_vao(vertex* vertices, int vertex_count, u32* indices, int index_
     return result;
 }
 
+static void calculate_normals(vertex* vertices, u32* indices, int index_count) {
+    for (int i = 0; i < index_count; i += 3) {
+        vertex* v0 = &vertices[indices[i]];
+        vertex* v1 = &vertices[indices[i + 1]];
+        vertex* v2 = &vertices[indices[i + 2]];
+        
+        vec3 normal = vec_cross(vec_sub(v2->p, v1->p), vec_sub(v0->p, v1->p));
+        
+        normal = vec_norm(normal);
+
+        v0->normal = normal;
+        v1->normal = normal;
+        v2->normal = normal;
+    }
+}
+
 mesh make_line_mesh() {
     // @info: this mesh is for debugging. it should be rendered using the immediate_line shader.
     //        since the shader takes 2 uniform positions and draws the line using the geometry shader
@@ -101,16 +117,81 @@ mesh make_cube_mesh() {
         1, 4, 5, 1, 0, 4
     };
     
+    calculate_normals(vertices, indices, 36);
+    
     result.vao = make_vao(vertices, 8, indices, 36);
+    return result;
+}
+
+static mesh make_thruster_mesh() {
+    int n = 8;
+    float theta = DEG_TO_RAD(360.0 / (float)n);
+    
+    int index_count = n * 12;
+    int vertex_count = n * 3;
+    
+    vertex* vertices = push_transient(sizeof(vertices[0]) * vertex_count);
+    u32* indices     = push_transient(sizeof(indices[0]) * index_count);
+    
+    int index_counter = 0;
+    for (int i = 0; i < n; i++) {
+        vertices[i        ].p = vec3(0.5 * cos(theta * i),  0.5, 0.5 * sin(theta * i));
+        vertices[i + n    ].p = vec3(0.5 * cos(theta * i),  0.2, 0.5 * sin(theta * i));
+        vertices[i + 2 * n].p = vec3(0.3 * cos(theta * i), -0.5, 0.3 * sin(theta * i));
+    
+        if (i < n - 1) {
+            indices[index_counter++] = i;
+            indices[index_counter++] = (i + n);
+            indices[index_counter++] = (i + 1);
+            
+            indices[index_counter++] = (i + 1);
+            indices[index_counter++] = (i + n);
+            indices[index_counter++] = (i + n + 1);
+            
+            indices[index_counter++] = (i + n)    ;
+            indices[index_counter++] = (i + 2 * n);
+            indices[index_counter++] = (i + n + 1);
+            
+            indices[index_counter++] = (i + n + 1);
+            indices[index_counter++] = (i + 2 * n);
+            indices[index_counter++] = (i + 2 * n + 1);
+        }        
+    }
+    
+    // @Info: add the last 4 triangles by hand because indices do not cycle nicely
+    indices[index_counter++] = 0;
+    indices[index_counter++] = 2 * n - 1;
+    indices[index_counter++] = n;
+    
+    indices[index_counter++] = 0;
+    indices[index_counter++] = n - 1;
+    indices[index_counter++] = 2 * n - 1;
+    
+    indices[index_counter++] = n;
+    indices[index_counter++] = 2 * n - 1;
+    indices[index_counter++] = 3 * n - 1;
+    
+    indices[index_counter++] = n;
+    indices[index_counter++] = 3 * n - 1;
+    indices[index_counter++] = 2 * n;
+    
+    calculate_normals(vertices, indices, index_counter);
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+                    .scale = vec3(1, 1, 1),
+                    .rotation = unit_quat(),
+                    .index_count = index_counter };
+    
+    result.vao = make_vao(vertices, vertex_count, indices, index_counter);
     return result;
 }
 
 void init_renderer(game_state* state) {
     renderer_info renderer;
     
-    glClearColor(0., 0., 0., 1.0);
+    glClearColor(0., 0., 0.1, 1.0);
     
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     
