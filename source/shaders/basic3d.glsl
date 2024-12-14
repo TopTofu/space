@@ -18,20 +18,12 @@ out vec4 clip_position;
 */
 
 out vertex_shader_out {
-    vec2 uv;
-    vec3 normal;
     vec4 world_position;
-    vec4 clip_position;
 } vs_out;
 
 void main() {
     gl_Position = projection * view * model * vec4(in_position, 1.0f);
-    
-    vs_out.uv = in_uv;
-    vs_out.normal = in_normal;
     vs_out.world_position = model * vec4(in_position, 1.0f);
-    
-    vs_out.clip_position = gl_Position;
 }
 
 
@@ -43,17 +35,11 @@ layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
 in vertex_shader_out {
-    vec2 uv;
-    vec3 normal;
     vec4 world_position;
-    vec4 clip_position;
 } gs_in[];
 
 out geometry_shader_out {
-    vec2 uv;
     vec3 normal;
-    vec4 world_position;
-    vec4 clip_position;
 } gs_out;
 
 void main() {
@@ -79,42 +65,18 @@ void main() {
 #version 330 core
 #line 27
 
-in vec2 uv;
-flat in vec3 normal;
-in vec4 world_position;
-in vec4 clip_position;
-
 uniform vec4 color;
 
 in geometry_shader_out {
-    vec2 uv;
     vec3 normal;
-    vec4 world_position;
-    vec4 clip_position;
 } fs_in;
 
 out vec4 out_color;
 
 void main() {
-    vec3 ndc_pos = clip_position.xyz / clip_position.w;
-    vec3 dx = dFdx(ndc_pos);
-    vec3 dy = dFdy(ndc_pos);
-    
-    vec3 N = normalize(cross(dx, dy));
-    N *= sign(N.z);
-    
-    vec3 L = vec3(1, 4, 1);
-    float NdotL = dot(N, L);
-    
-    vec3 diffuse_color = color.xyz * NdotL;
-    out_color = vec4(diffuse_color, color.w);
-
-    out_color = color;
-    
     vec3 unilateral_normal = fs_in.normal * 0.5 + 0.5; // between 0 and 1
-    
     out_color.xyz = unilateral_normal;
-    //out_color.xyz = fs_in.normal;
+    out_color.w = color.w;
 }
 
 
