@@ -1,225 +1,102 @@
-#pragma 
+#pragma once
 
-static inline collision_quad rotate_quad(quat rotation, collision_quad quad) {
-    mat4 rotation_mat = quat_to_mat(rotation);
-    return (collision_quad) { .a = vec_transform(rotation_mat, quad.a), .b = vec_transform(rotation_mat, quad.b) };
+collision_quad cube_collision_quads[6] = {
+    { .a = { 0.5, -.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
+    { .a = { -.5, 0.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
+    { .a = { -.5, -.5, 0.5 }, .b = { 0.5, 0.5, 0.5 } },
+    { .a = { -.5, -.5, 0.5 }, .b = { -.5, 0.5, -.5 } },
+    { .a = { -.5, -.5, -.5 }, .b = { 0.5, -.5, 0.5 } },
+    { .a = { -.5, -.5, -.5 }, .b = { 0.5, 0.5, -.5 } }
+};
+
+static inline vec3 collision_quad_get_center(collision_quad quad) {
+    return vec_add(quad.a, vec_mul(vec_sub(quad.b, quad.a), 0.5f));
 }
 
-static inline vec3 slot_get_offset(component_slot_info* slot) {
-    return quat_rotate_vec(slot->component->rotation, get_slot_data(slot).offset);
-}
+static void render_ship(ship_info* ship) {
+    for (int i = 0; i < ship->part_count; i++) {
+        ship_part part = ship->parts[i];
 
-static inline vec3 slot_get_world_position(component_slot_info* slot) {
-    return vec_add(vec_add(ship.translation, slot->component->offset), slot_get_offset(slot));
-}
-
-static inline vec3 component_get_world_position(ship_component* comp) {
-    return vec_add(ship.translation, comp->offset);
-}
-
-static void render_ship_component(ship_component* comp, vec3 translation) {
-    quat rot = quat_from_axis_angle(vec3(0, 1, 0), global->time.in_seconds);
+        vec3 translation = vec_add(ship->position, part.offset);
     
-    render_mesh_basic(get_type(comp).mesh, 
-        .translation = vec_add(translation, comp->offset), 
-        .rotation = comp->rotation, 
-        .color = (color)RGB_GRAY(200));
-    
-    for (int i = 0; i < get_type(comp).slot_count; i++) {
-        render_mesh_basic(global->renderer.cube_mesh, 
-            .translation = slot_get_world_position(&comp->slots[i]), 
-            .scale = 0.1,
-            .color = (color)RGB_GRAY(200));
-            
-            
-        // render_mesh_basic(global->renderer.cube_mesh,
-        //     .translation = vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).a),
-        //     .scale = 0.1,
-        //     .color = (color)RGB(100, 200, 200));
-        // render_mesh_basic(global->renderer.cube_mesh,
-        //     .translation = vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).b),
-        //     .scale = 0.1,
-        //     .color = (color)RGB(200, 100, 200));
-        debug_render_quad(
-            vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).b), 
-            vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).a),
-            (color)RGB(100, 200, 100));
+        render_mesh_basic(get_type(&part).mesh, 
+            .translation = translation,
+            .rotation = part.rotation);
     }
 }
 
-static void render_ship(ship_info ship) {
-    for (int i = 0; i < ship.component_count; i++) {
-        render_ship_component(&ship.components[i], ship.translation);
-    }
+static void ship_add_part(ship_info* ship, vec3 position, quat rotation, ship_part_type_id type_id) {
+    if (ship->part_count >= SHIP_PART_MAX_COUNT) { return; }
+    
+    ship_part* part = &ship->parts[ship->part_count++];
+    
+    part->type_id = type_id;
+    part->offset = vec_sub(position, ship->position);
+    part->rotation = rotation;
 }
 
-static void make_ship_component(ship_component* comp, int type_id) {
-    comp->offset = vec3(0, 0, 0);
-    
-    comp->type_id = type_id;
-    comp->rotation = unit_quat();
-    
-    ship_component_type_info type = get_type(comp);
-    
-    for (int i = 0; i < SHIP_COMPONENT_MAX_SLOTS; i++) {
-        comp->slots[i].component = comp;
-        comp->slots[i].connected_to = 0;
-        comp->slots[i].index = i;
-        
-        comp->slots[i].valid = (i < type.slot_count);
-    }
-}
-
-static void ship_add_component(ship_info* ship, component_slot_info* connect_to, int type_id) {
-    if (connect_to->connected_to) { return; }
-    if (ship->component_count >= SHIP_MAX_COMPONENTS) { return; }
-    
-    ship_component* comp = &ship->components[ship->component_count++];
-    make_ship_component(comp, type_id);
-    
-    ship_component_type_info type = component_types[type_id];
-    
-    vec3 offset = slot_get_offset(connect_to);
-    vec3 inv_offset_dir = vec_mul(vec_norm(offset), -1);
-    
-    int slot_index = -1;
-    for (int i = 0; i < type.slot_count; i++) {
-        if (!comp->slots[i].valid) { continue; }
-    
-        vec3 v = get_type(comp).slot_data[i].offset;
-        v = vec_norm(v);
-        
-        if (vec_eq(inv_offset_dir, v)) {
-            slot_index = i;
-            break;
-        }
-    }
-    
-    if (slot_index < 0) {
-        // @Note: if we don't find an appropriately turned slot, we take slot[0] and rotate the component
-        vec3 v = get_type(comp).slot_data[0].offset;
-        v = vec_norm(v);
-        comp->rotation = quat_from_unit_vectors(v, inv_offset_dir);
-        
-        vec3 temp = quat_rotate_vec(comp->rotation, v);
-        slot_index = 0;
-    }
-    
-    ship_component* parent = connect_to->component;
-    
-    vec3 own_slot_offset = get_type(comp).slot_data[slot_index].offset;
-    own_slot_offset = quat_rotate_vec(comp->rotation, own_slot_offset);
-    
-    vec3 to_connect_offset = get_slot_data(connect_to).offset;
-    to_connect_offset = quat_rotate_vec(connect_to->component->rotation, to_connect_offset);
-    
-    comp->offset = vec_add(parent->offset, vec_add(vec_mul(own_slot_offset, -1.f), to_connect_offset));
-
-    connect_to->connected_to = &comp->slots[slot_index];
-    comp->slots[slot_index].connected_to = connect_to;
-}
-
-void component_place_preview(ship_component_type_id type_id) {
+static void update_and_render_part_preview(ship_info* ship, ship_part_type_id type_id) {
     vec3 ray = ray_from_screen(global->mouse.position);
     
     float min_distance = 100;
-    component_slot_info* closest = 0;
-    for (int ship_id = 0; ship_id < ship.component_count; ship_id++) {
-        ship_component* comp = &ship.components[ship_id];
+    ship_part* closest = 0;
+    collision_quad hit_quad = { 0 };
+    
+    for (int part_id = 0; part_id < ship->part_count; part_id++) {
+        ship_part* part = &ship->parts[part_id];
+        vec3 part_position = vec_add(part->offset, ship->position);
         
-        for (int i = 0; i < SHIP_COMPONENT_MAX_SLOTS; i++) {
-            component_slot_info* slot = &comp->slots[i];
-            if (slot->connected_to) { continue; }
-            if (!slot->valid) { continue; }
+        for (int i = 0; i < array_count(cube_collision_quads); i++) {
+            collision_quad quad = cube_collision_quads[i];
             
-            vec3 total_translation = slot_get_world_position(slot);
-            
-            collision_quad quad = get_slot_data(slot).quad;
-            quad = rotate_quad(slot->component->rotation, quad);
-            
-            quad.a = vec_add(quad.a, component_get_world_position(comp));
-            quad.b = vec_add(quad.b, component_get_world_position(comp));
+            quad.a = vec_add(quad.a, part_position);
+            quad.b = vec_add(quad.b, part_position);
             
             float d = intersect_ray_quad(global->camera.position, ray, quad);
-            
+                        
             if (d >= 0 && d < min_distance) { 
                 min_distance = d;
-                closest = slot;
+                hit_quad = quad;
+                closest = part;
             }
         }
     }
     
     if (closest) {
-        vec3 t = slot_get_world_position(closest);
-        vec3 offset = get_slot_data(closest).offset;
+        vec3 quad_offset = vec_sub(collision_quad_get_center(hit_quad), vec_add(closest->offset, ship->position));
+        vec3 offset = vec_add(closest->offset, vec_mul(quad_offset, 2.f)); 
         
-        render_mesh_basic(component_types[type_id].mesh, .translation = vec_add(t, offset), 
+        vec3 position = vec_add(ship->position, offset);
+        
+        quat current_part_rotation_x = quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(90 * rotate_x));
+        quat current_part_rotation_y = quat_from_axis_angle(vec3(0, 1, 0), DEG_TO_RAD(90 * rotate_y));
+        
+        quat current_part_rotation = quat_mul_quat(current_part_rotation_y, current_part_rotation_x);
+        
+        render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = current_part_rotation,
             .color = (color)RGBA(200, 100, 100, 100));
         
-        // render_mesh_basic(global->renderer.cube_mesh,
-        //     .translation = vec_add(component_get_world_position(closest->component), rotate_quad(closest->component->rotation, get_slot_data(closest).quad).a),
-        //     .scale = 0.1,
-        //     .color = (color)RGB(100, 200, 200));
-        // render_mesh_basic(global->renderer.cube_mesh,
-        //     .translation = vec_add(component_get_world_position(closest->component), rotate_quad(closest->component->rotation, get_slot_data(closest).quad).b),
-        //     .scale = 0.1,
-        //     .color = (color)RGB(200, 100, 200));
-        
         if (global->mouse.left_down_this_frame) {
-            ship_add_component(&ship, closest, type_id); 
+            ship_add_part(ship, position, current_part_rotation, type_id);
+            current_part_rotation = unit_quat();
         }
     }
 }
 
-static void init_ship_component_types(game_state* state) {
-    component_types[COMPONENT_CUBE] = (ship_component_type_info) {
-        .id = COMPONENT_CUBE,
+static void init_ship_part_types(game_state* state) {
+    part_types[PART_CUBE] = (ship_part_type) {
+        .id = PART_CUBE,
         .mesh = make_cube_mesh(),
-
-        .slot_data[0].offset = vec3(0.5, 0, 0), 
-        .slot_data[1].offset = vec3(0, 0.5, 0), 
-        .slot_data[2].offset = vec3(0, 0, 0.5), 
-        .slot_data[3].offset = vec3(-.5, 0, 0), 
-        .slot_data[4].offset = vec3(0, -.5, 0), 
-        .slot_data[5].offset = vec3(0, 0, -.5),
-
-        .slot_data[0].quad = (collision_quad) { .a = vec3(0.5, -.5, -.5), .b = vec3(0.5, 0.5, 0.5) },
-        .slot_data[1].quad = (collision_quad) { .a = vec3(-.5, 0.5, -.5), .b = vec3(0.5, 0.5, 0.5) },
-        .slot_data[2].quad = (collision_quad) { .a = vec3(-.5, -.5, 0.5), .b = vec3(0.5, 0.5, 0.5) },
-        .slot_data[3].quad = (collision_quad) { .a = vec3(-.5, -.5, 0.5), .b = vec3(-.5, 0.5, -.5) },
-        .slot_data[4].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, -.5, 0.5) },
-        .slot_data[5].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, 0.5, -.5) },
-        
-        .slot_count = 6,
     };
     
-    component_types[COMPONENT_THRUSTER] = (ship_component_type_info) {
-        .id = COMPONENT_THRUSTER,
+    part_types[PART_THRUSTER] = (ship_part_type) {
+        .id = PART_THRUSTER,
         .mesh = make_thruster_mesh(),
-
-        .slot_data[0].offset = vec3(0, -.5, 0), 
-        .slot_data[1].offset = vec3(0, .5, 0), 
-
-        .slot_data[0].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, -.5, 0.5) },
-        .slot_data[1].quad = (collision_quad) { .a = vec3(-.5, .5, -.5), .b = vec3(0.5, .5, 0.5) },
-
-        .slot_count = 2,
     };
     
-    component_types[COMPONENT_TANK] = (ship_component_type_info) {
-        .id = COMPONENT_TANK,
+    part_types[PART_TANK] = (ship_part_type) {
+        .id = PART_TANK,
         .mesh = make_tank_mesh(),
-
-        .slot_data[0].offset = vec3(0, -.5, 0), 
-        .slot_data[1].offset = vec3(0, 0.5, 0), 
-        .slot_data[2].offset = vec3(0, 0, 0.5), 
-        .slot_data[3].offset = vec3(0, 0, -.5), 
-
-        .slot_data[0].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, -.5, 0.5) },
-        .slot_data[1].quad = (collision_quad) { .a = vec3(-.5, 0.5, -.5), .b = vec3(0.5, 0.5, 0.5) },
-        .slot_data[2].quad = (collision_quad) { .a = vec3(-.5, -.5, 0.5), .b = vec3(0.5, 0.5, 0.5) },
-        .slot_data[3].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, 0.5, -.5) },
-
-        .slot_count = 4,
     };
 }
+

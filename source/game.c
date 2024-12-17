@@ -200,7 +200,6 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 
 mesh m;
 
-
 static void game_init_memory(platform_info* platform) {
     assert(platform->permanent_storage);
     assert(sizeof(game_state) < platform->permanent_storage_size);
@@ -224,15 +223,11 @@ static void game_init_memory(platform_info* platform) {
 
     camera_set_default(state);
 
-    init_ship_component_types(state);
+    init_ship_part_types(state);
+    ship.position.z = 5;
+
+    ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
     
-    ship.base_component = &ship.components[0];
-    make_ship_component(ship.base_component, COMPONENT_TANK);
-    ship.component_count++;
-    
-    ship.translation.z = 5;
-    
-    m = make_tank_mesh();
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -264,8 +259,8 @@ static void game_update_and_render(platform_info* platform) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         {   
-            render_ship(ship);
-            component_place_preview(comp_id);
+            render_ship(&ship);
+            update_and_render_part_preview(&ship, comp_id);
             
             // render_mesh_basic(m, .translation = vec3(0, 0, 5));
             // .rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));

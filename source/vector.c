@@ -711,7 +711,7 @@ static inline mat4 quat_to_mat(quat q) {
     mat4 result;
     result.elements[0][0] = 1.0f - 2.0f * (yy + zz);
     result.elements[0][1] = 2.0f * (xy + wz);
-    result.elements[0][2] = 2.0f * (xy - wy);
+    result.elements[0][2] = 2.0f * (xz - wy);
     result.elements[0][3] = 0;
     
     result.elements[1][0] = 2.0f * (xy - wz);
@@ -728,7 +728,7 @@ static inline mat4 quat_to_mat(quat q) {
     result.elements[3][1] = 0.0f;
     result.elements[3][2] = 0.0f;
     result.elements[3][3] = 1.0f;
-         
+    
     return result;
 }
 
