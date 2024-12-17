@@ -33,22 +33,6 @@ static u32 make_vao(vertex* vertices, int vertex_count, u32* indices, int index_
     return result;
 }
 
-static void calculate_normals(vertex* vertices, u32* indices, int index_count) {
-    for (int i = 0; i < index_count; i += 3) {
-        vertex* v0 = &vertices[indices[i]];
-        vertex* v1 = &vertices[indices[i + 1]];
-        vertex* v2 = &vertices[indices[i + 2]];
-        
-        vec3 normal = vec_cross(vec_sub(v2->p, v1->p), vec_sub(v0->p, v1->p));
-        
-        normal = vec_norm(normal);
-
-        v0->normal = normal;
-        v1->normal = normal;
-        v2->normal = normal;
-    }
-}
-
 mesh make_line_mesh() {
     // @info: this mesh is for debugging. it should be rendered using the immediate_line shader.
     //        since the shader takes 2 uniform positions and draws the line using the geometry shader
@@ -117,8 +101,7 @@ mesh make_cube_mesh() {
         1, 4, 5, 1, 0, 4
     };
     
-    calculate_normals(vertices, indices, 36);
-    
+    result.vao = make_vao(vertices, 8, indices, 36);
     result.vao = make_vao(vertices, 8, indices, 36);
     return result;
 }
@@ -175,12 +158,65 @@ static mesh make_thruster_mesh() {
     indices[index_counter++] = 3 * n - 1;
     indices[index_counter++] = 2 * n;
     
-    calculate_normals(vertices, indices, index_counter);
-    
     mesh result = { .primitive = GL_TRIANGLES, 
                     .scale = vec3(1, 1, 1),
                     .rotation = unit_quat(),
                     .index_count = index_counter };
+    
+    result.vao = make_vao(vertices, vertex_count, indices, index_counter);
+    return result;
+}
+
+mesh make_tank_mesh() {
+    int n = 8;
+    float theta = DEG_TO_RAD(360.0 / (float)n);
+    
+    int index_count  = n * 6 + 3 * n;
+    int vertex_count = n * 2;
+    
+    vertex* vertices = push_transient(sizeof(vertices[0]) * vertex_count);
+    u32* indices     = push_transient(sizeof(indices[0]) * index_count);
+    
+    int index_counter = 0;
+    
+    for (int i = 0; i < n; i++) {
+        int c = 2 * i;
+        
+        vertices[c    ].p = vec3(-.5, 0.5 * cos(theta * i), 0.5 * sin(theta * i));
+        vertices[c + 1].p = vec3(0.5, 0.5 * cos(theta * i), 0.5 * sin(theta * i));
+        
+        indices[index_counter++] = (c    ) % (2 * n);
+        indices[index_counter++] = (c + 1) % (2 * n);
+        indices[index_counter++] = (c + 3) % (2 * n);
+        
+        indices[index_counter++] = (c    ) % (2 * n);
+        indices[index_counter++] = (c + 3) % (2 * n);
+        indices[index_counter++] = (c + 2) % (2 * n);
+    }
+    
+    for (int i = 1; i < n / 2; i++) {
+        indices[index_counter++] = 0;
+        indices[index_counter++] = i * 2 + 2;
+        indices[index_counter++] = i * 2;
+        
+        indices[index_counter++] = 0;
+        indices[index_counter++] = 2 * n - i * 2;
+        indices[index_counter++] = 2 * n - (i * 2 + 2);
+        
+        indices[index_counter++] = 1;
+        indices[index_counter++] = 1 + i * 2 + 2;
+        indices[index_counter++] = 1 + i * 2;
+        
+        indices[index_counter++] = 1;
+        indices[index_counter++] = 1 + 2 * n - i * 2;
+        indices[index_counter++] = 1 + 2 * n - (i * 2 + 2);
+    }
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = index_counter 
+    };
     
     result.vao = make_vao(vertices, vertex_count, indices, index_counter);
     return result;
@@ -678,7 +714,7 @@ typedef struct {
     __VA_ARGS__ })
 
 static void _render_mesh_basic(mesh m, render_mesh_args args) {
-    shader_info* shader = get_shader("basic3d");
+    shader_info* shader = get_shader("game_object");
     glUseProgram(shader->id);
     
     mat4 model = make_model_matrix(vec_add(args.translation, m.translation), 
@@ -694,6 +730,8 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     
     glBindVertexArray(m.vao);
     glDrawElements(m.primitive, m.index_count, GL_UNSIGNED_INT, 0);
+    // glDrawElements(m.primitive, MIN(debug_index_count, m.index_count), GL_UNSIGNED_INT, 0);
+    // print(debug_index_count);
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -717,3 +755,25 @@ static void render_mesh(mesh m, shader_info* shader) {
     glUseProgram(0);
 }
 
+static void debug_render_quad(vec3 p0, vec3 p1, color c) {
+    shader_info* shader = get_shader("debug_quad");
+    glUseProgram(shader->id);
+    
+    mesh m = global->renderer.line_mesh;
+
+    mat4 view = global->camera.view_matrix;
+    mat4 proj = global->renderer.projection_matrix;
+
+    shader_set_uniform(shader, "view", view);
+    shader_set_uniform(shader, "projection", proj);
+    shader_set_uniform(shader, "color", c);
+    
+    shader_set_uniform(shader, "p0", p0);
+    shader_set_uniform(shader, "p1", p1);
+    
+    glBindVertexArray(m.vao);
+    glDrawElements(m.primitive, m.index_count, GL_UNSIGNED_INT, 0);
+    
+    glBindVertexArray(0);
+    glUseProgram(0);
+}

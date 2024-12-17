@@ -227,12 +227,12 @@ static void game_init_memory(platform_info* platform) {
     init_ship_component_types(state);
     
     ship.base_component = &ship.components[0];
-    make_ship_component(ship.base_component, COMPONENT_CUBE);
+    make_ship_component(ship.base_component, COMPONENT_TANK);
     ship.component_count++;
     
     ship.translation.z = 5;
     
-    m = make_thruster_mesh();
+    m = make_tank_mesh();
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -268,7 +268,7 @@ static void game_update_and_render(platform_info* platform) {
             component_place_preview(comp_id);
             
             // render_mesh_basic(m, .translation = vec3(0, 0, 5));
-            //.rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));
+            // .rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));
         }
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

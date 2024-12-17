@@ -9,6 +9,7 @@ typedef struct component_slot_info component_slot_info;
 typedef enum {
     COMPONENT_CUBE,
     COMPONENT_THRUSTER,
+    COMPONENT_TANK,
     
     COMPONENT_TYPE_COUNT
 } ship_component_type_id;

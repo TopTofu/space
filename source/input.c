@@ -87,6 +87,7 @@ bool default_key_down_proc(game_state* state, key_event event) {
         
         case KEY_1: { comp_id = COMPONENT_CUBE; } break;
         case KEY_2: { comp_id = COMPONENT_THRUSTER; } break;
+        case KEY_3: { comp_id = COMPONENT_TANK; } break;
         
     }
     

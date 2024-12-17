@@ -1,5 +1,10 @@
 #pragma 
 
+static inline collision_quad rotate_quad(quat rotation, collision_quad quad) {
+    mat4 rotation_mat = quat_to_mat(rotation);
+    return (collision_quad) { .a = vec_transform(rotation_mat, quad.a), .b = vec_transform(rotation_mat, quad.b) };
+}
+
 static inline vec3 slot_get_offset(component_slot_info* slot) {
     return quat_rotate_vec(slot->component->rotation, get_slot_data(slot).offset);
 }
@@ -19,6 +24,27 @@ static void render_ship_component(ship_component* comp, vec3 translation) {
         .translation = vec_add(translation, comp->offset), 
         .rotation = comp->rotation, 
         .color = (color)RGB_GRAY(200));
+    
+    for (int i = 0; i < get_type(comp).slot_count; i++) {
+        render_mesh_basic(global->renderer.cube_mesh, 
+            .translation = slot_get_world_position(&comp->slots[i]), 
+            .scale = 0.1,
+            .color = (color)RGB_GRAY(200));
+            
+            
+        // render_mesh_basic(global->renderer.cube_mesh,
+        //     .translation = vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).a),
+        //     .scale = 0.1,
+        //     .color = (color)RGB(100, 200, 200));
+        // render_mesh_basic(global->renderer.cube_mesh,
+        //     .translation = vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).b),
+        //     .scale = 0.1,
+        //     .color = (color)RGB(200, 100, 200));
+        debug_render_quad(
+            vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).b), 
+            vec_add(component_get_world_position(comp), rotate_quad(comp->rotation, get_slot_data(&comp->slots[i]).quad).a),
+            (color)RGB(100, 200, 100));
+    }
 }
 
 static void render_ship(ship_info ship) {
@@ -109,6 +135,8 @@ void component_place_preview(ship_component_type_id type_id) {
             vec3 total_translation = slot_get_world_position(slot);
             
             collision_quad quad = get_slot_data(slot).quad;
+            quad = rotate_quad(slot->component->rotation, quad);
+            
             quad.a = vec_add(quad.a, component_get_world_position(comp));
             quad.b = vec_add(quad.b, component_get_world_position(comp));
             
@@ -127,7 +155,16 @@ void component_place_preview(ship_component_type_id type_id) {
         
         render_mesh_basic(component_types[type_id].mesh, .translation = vec_add(t, offset), 
             .color = (color)RGBA(200, 100, 100, 100));
-            
+        
+        // render_mesh_basic(global->renderer.cube_mesh,
+        //     .translation = vec_add(component_get_world_position(closest->component), rotate_quad(closest->component->rotation, get_slot_data(closest).quad).a),
+        //     .scale = 0.1,
+        //     .color = (color)RGB(100, 200, 200));
+        // render_mesh_basic(global->renderer.cube_mesh,
+        //     .translation = vec_add(component_get_world_position(closest->component), rotate_quad(closest->component->rotation, get_slot_data(closest).quad).b),
+        //     .scale = 0.1,
+        //     .color = (color)RGB(200, 100, 200));
+        
         if (global->mouse.left_down_this_frame) {
             ship_add_component(&ship, closest, type_id); 
         }
@@ -167,5 +204,22 @@ static void init_ship_component_types(game_state* state) {
         .slot_data[1].quad = (collision_quad) { .a = vec3(-.5, .5, -.5), .b = vec3(0.5, .5, 0.5) },
 
         .slot_count = 2,
+    };
+    
+    component_types[COMPONENT_TANK] = (ship_component_type_info) {
+        .id = COMPONENT_TANK,
+        .mesh = make_tank_mesh(),
+
+        .slot_data[0].offset = vec3(0, -.5, 0), 
+        .slot_data[1].offset = vec3(0, 0.5, 0), 
+        .slot_data[2].offset = vec3(0, 0, 0.5), 
+        .slot_data[3].offset = vec3(0, 0, -.5), 
+
+        .slot_data[0].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, -.5, 0.5) },
+        .slot_data[1].quad = (collision_quad) { .a = vec3(-.5, 0.5, -.5), .b = vec3(0.5, 0.5, 0.5) },
+        .slot_data[2].quad = (collision_quad) { .a = vec3(-.5, -.5, 0.5), .b = vec3(0.5, 0.5, 0.5) },
+        .slot_data[3].quad = (collision_quad) { .a = vec3(-.5, -.5, -.5), .b = vec3(0.5, 0.5, -.5) },
+
+        .slot_count = 4,
     };
 }
