@@ -41,6 +41,21 @@ typedef struct {
 } mesh;
 
 typedef struct {
+    u32 id;
+    int width, height;
+    u32 type;
+    u32 color_attachment_id;
+} framebuffer_attachment;
+
+#define FRAMEBUFFER_ATTACHMENT_MAX_COUNT 16
+#define GL_COLOR_ATTACHMENT GL_COLOR_ATTACHMENT0 
+typedef struct {
+    u32 id;
+    int color_attachment_count;
+    framebuffer_attachment attachments[FRAMEBUFFER_ATTACHMENT_MAX_COUNT];
+} framebuffer_info;
+
+typedef struct {
     mat4 projection_matrix;
     
     mesh line_mesh;
@@ -49,9 +64,9 @@ typedef struct {
     
     int polygon_mode;
     
-    texture_info scene_texture;
-    u32 scene_depth_buffer;
-    u32 scene_framebuffer;
+    framebuffer_info scene_framebuffer;
+    framebuffer_attachment* scene_texture;
+    framebuffer_attachment* scene_depth_texture;
 } renderer_info;
 
 #define shader_set_uniform(shader, name, x) _Generic((x), int: shader_set_int,      \

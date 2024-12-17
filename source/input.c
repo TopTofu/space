@@ -19,8 +19,7 @@ inline bool keymap_get(game_state* state, u32 key) {
 }
 
 int comp_id = 0;
-int rotate_x = 0;
-int rotate_y = 0;
+
 
 bool default_key_down_proc(game_state* state, key_event event) {
     bool ctrl = keymap_get(state, KEY_CONTROL);
@@ -88,19 +87,22 @@ bool default_key_down_proc(game_state* state, key_event event) {
         } break;
         
         case KEY_R: {
-            rotate_x++;
-            rotate_x %= 4;
-            // current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(90)), current_part_rotation);
+            current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(90)), current_part_rotation);
         } break;
         case KEY_T: {
-            rotate_y++;
-            rotate_y %= 4;
-            // current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(0, 1, 0), DEG_TO_RAD(90)), current_part_rotation);
+            current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(0, 1, 0), DEG_TO_RAD(90)), current_part_rotation);
+        } break;
+        
+        case KEY_X: {
+            delete_part_at_mouse();
         } break;
         
         case KEY_1: { comp_id = PART_CUBE; } break;
         case KEY_2: { comp_id = PART_THRUSTER; } break;
         case KEY_3: { comp_id = PART_TANK; } break;
+        case KEY_4: { comp_id = PART_SLOPE; } break;
+        case KEY_5: { comp_id = PART_WING; } break;
+        case KEY_6: { comp_id = PART_WING_TIP; } break;
         
     }
     

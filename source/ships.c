@@ -1,5 +1,9 @@
 #pragma once
 
+int rotate_x = 0;
+int rotate_y = 0;
+
+
 collision_quad cube_collision_quads[6] = {
     { .a = { 0.5, -.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
     { .a = { -.5, 0.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
@@ -14,8 +18,9 @@ static inline vec3 collision_quad_get_center(collision_quad quad) {
 }
 
 static void render_ship(ship_info* ship) {
-    for (int i = 0; i < ship->part_count; i++) {
+    for (int i = 0; i < SHIP_PART_MAX_COUNT; i++) {
         ship_part part = ship->parts[i];
+        if (!part.active) { continue; }
 
         vec3 translation = vec_add(ship->position, part.offset);
     
@@ -26,24 +31,41 @@ static void render_ship(ship_info* ship) {
 }
 
 static void ship_add_part(ship_info* ship, vec3 position, quat rotation, ship_part_type_id type_id) {
-    if (ship->part_count >= SHIP_PART_MAX_COUNT) { return; }
+    ship_part* part = 0;
+    for (int i = 0; i < SHIP_PART_MAX_COUNT; i++) {
+        if (!ship->parts[i].active) {
+            part = &ship->parts[i];
+            break;
+        }
+    }
     
-    ship_part* part = &ship->parts[ship->part_count++];
+    if (!part) { return; }
     
     part->type_id = type_id;
+    part->active = true;
     part->offset = vec_sub(position, ship->position);
     part->rotation = rotation;
 }
 
-static void update_and_render_part_preview(ship_info* ship, ship_part_type_id type_id) {
+typedef struct {
+    ship_part* part;
+    collision_quad quad;
+    float distance;
+} part_at_mouse_result;
+
+static part_at_mouse_result get_part_at_mouse(ship_info* ship) {
     vec3 ray = ray_from_screen(global->mouse.position);
     
-    float min_distance = 100;
-    ship_part* closest = 0;
-    collision_quad hit_quad = { 0 };
+    part_at_mouse_result result;
     
-    for (int part_id = 0; part_id < ship->part_count; part_id++) {
+    result.distance = 100;
+    result.part = 0;
+    result.quad = (collision_quad) { 0 };
+    
+    for (int part_id = 0; part_id < SHIP_PART_MAX_COUNT; part_id++) {
         ship_part* part = &ship->parts[part_id];
+        if (!part->active) { continue; }
+        
         vec3 part_position = vec_add(part->offset, ship->position);
         
         for (int i = 0; i < array_count(cube_collision_quads); i++) {
@@ -54,24 +76,27 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
             
             float d = intersect_ray_quad(global->camera.position, ray, quad);
                         
-            if (d >= 0 && d < min_distance) { 
-                min_distance = d;
-                hit_quad = quad;
-                closest = part;
+            if (d >= 0 && d < result.distance) { 
+                result.distance = d;
+                result.quad = quad;
+                result.part = part;
             }
         }
     }
     
-    if (closest) {
-        vec3 quad_offset = vec_sub(collision_quad_get_center(hit_quad), vec_add(closest->offset, ship->position));
-        vec3 offset = vec_add(closest->offset, vec_mul(quad_offset, 2.f)); 
+    return result;
+}
+
+quat current_part_rotation = { 0, 0, 0, 1 };
+
+static void update_and_render_part_preview(ship_info* ship, ship_part_type_id type_id) {
+    part_at_mouse_result get_result = get_part_at_mouse(ship);
+    
+    if (get_result.part) {
+        vec3 quad_offset = vec_sub(collision_quad_get_center(get_result.quad), vec_add(get_result.part->offset, ship->position));
+        vec3 offset = vec_add(get_result.part->offset, vec_mul(quad_offset, 2.f)); 
         
         vec3 position = vec_add(ship->position, offset);
-        
-        quat current_part_rotation_x = quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(90 * rotate_x));
-        quat current_part_rotation_y = quat_from_axis_angle(vec3(0, 1, 0), DEG_TO_RAD(90 * rotate_y));
-        
-        quat current_part_rotation = quat_mul_quat(current_part_rotation_y, current_part_rotation_x);
         
         render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = current_part_rotation,
             .color = (color)RGBA(200, 100, 100, 100));
@@ -80,6 +105,14 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
             ship_add_part(ship, position, current_part_rotation, type_id);
             current_part_rotation = unit_quat();
         }
+    }
+}
+
+static void delete_part_at_mouse() {
+    part_at_mouse_result get_result = get_part_at_mouse(&ship);
+    
+    if (get_result.part) {
+        get_result.part->active = false;
     }
 }
 
@@ -97,6 +130,21 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_TANK] = (ship_part_type) {
         .id = PART_TANK,
         .mesh = make_tank_mesh(),
+    };
+    
+    part_types[PART_SLOPE] = (ship_part_type) {
+        .id = PART_SLOPE,
+        .mesh = make_slope_mesh(),
+    };
+    
+    part_types[PART_WING] = (ship_part_type) {
+        .id = PART_WING,
+        .mesh = make_wing_mesh(),
+    };
+    
+    part_types[PART_WING_TIP] = (ship_part_type) {
+        .id = PART_WING_TIP,
+        .mesh = make_wing_tip_mesh(),
     };
 }
 

@@ -57,8 +57,8 @@ float get_sobel_edge() {
             float xn = uv.x + step.x * (x - 1);
             float yn = uv.y + step.y * (y - 1);
             
-            g_x += rgb_to_gray(texture(scene_texture, vec2(xn, yn))) * kernelx[x][y] * 4; // @Note this added factor fixes
-            g_y += rgb_to_gray(texture(scene_texture, vec2(xn, yn))) * kernely[x][y] * 4; //       some artifacts
+            g_x += rgb_to_gray(texture(scene_texture, vec2(xn, yn))) * kernelx[x][y] * 4.; // @Note this added factor removes
+            g_y += rgb_to_gray(texture(scene_texture, vec2(xn, yn))) * kernely[x][y] * 4.; //       some artifacts
         }
     }
     
@@ -72,10 +72,10 @@ void main() {
     
     vec4 green = vec4(57, 255, 20, 255) / 255.;
     
-    sobel = step(0.1, sobel);
+    sobel = step(0.01, sobel);
     out_color = vec4(sobel, sobel, sobel, 1) * green;
 
-    out_color = scene;
+    // out_color = scene;
 }
 
 

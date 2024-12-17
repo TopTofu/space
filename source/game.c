@@ -190,13 +190,68 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 
 
 
-
 // === source includes
 #include "render.c"
 #include "camera.c"
-#include "input.c"
 #include "ui.c"
 #include "ships.c"
+#include "input.c"
+
+
+framebuffer_info icon_fb;
+static void update_and_render_part_buttons() {
+    int pad = 15;
+    int button_w = 100;
+    int x = pad;
+    int y = global->platform->window_height - button_w - pad;
+    
+    quat model_rotation = unit_quat();
+    model_rotation = quat_mul_quat(quat_from_axis_angle(vec3(0, 1, 0), 
+        DEG_TO_RAD(global->time.in_seconds * 15.)), model_rotation);
+    model_rotation = quat_mul_quat(quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(-30)), model_rotation);
+    
+    void* id = update_and_render_part_buttons;
+    
+    for (int i = 0; i < PART_TYPE_COUNT; i++) {
+        ship_part_type type = part_types[i];
+        
+        if (comp_id == i) { ui_quad(x - 2, y - 2, button_w + 4, button_w + 4, (color)white()); }
+        
+        {   
+            glBindFramebuffer(GL_FRAMEBUFFER, icon_fb.id);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glViewport(0, 0, 100, 100);
+         
+            shader_info* shader = get_shader("game_object");
+            glUseProgram(shader->id);
+            
+            mat4 model = make_model_matrix(vec3(0, 0, 5), vec3(2, 2, 2), model_rotation);
+            mat4 view  = make_view_matrix(vec3(0, 0, 0), vec3(0, 0, -1), vec3(0, 1, 0), vec3(1, 0, 0));
+            mat4 proj  = make_projection_matrix(icon_fb.attachments[0].width, icon_fb.attachments[0].height, 40, 0.1, 100);
+
+            shader_set_uniform(shader, "model", model);
+            shader_set_uniform(shader, "view", view);
+            shader_set_uniform(shader, "projection", proj);
+            shader_set_uniform(shader, "color", (color)white());
+            
+            glBindVertexArray(type.mesh.vao);
+            glDrawElements(type.mesh.primitive, type.mesh.index_count, GL_UNSIGNED_INT, 0);
+            
+            glBindVertexArray(0);
+            glUseProgram(0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(0, 0, global->platform->window_width, global->platform->window_height);
+        }
+        
+        bool clicked = button(IDX(id, i), x, y, button_w, button_w, (color)RGB(100, 100, 150));
+        if (clicked) { comp_id = i; }
+        
+        ui_quad_textured(x, y, button_w, button_w, icon_fb.attachments[0].id, get_shader("part_icon"));
+        
+        x += button_w + pad;
+    }
+    
+}
 
 mesh m;
 
@@ -228,6 +283,10 @@ static void game_init_memory(platform_info* platform) {
 
     ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
     
+    // m = make_wing_mesh();
+    init_framebuffer(&icon_fb);
+    framebuffer_add_attachment(&icon_fb, GL_COLOR_ATTACHMENT, 100, 100, .wrap_t = GL_CLAMP_TO_EDGE, .wrap_s = GL_CLAMP_TO_EDGE);
+    framebuffer_add_attachment(&icon_fb, GL_DEPTH_ATTACHMENT, 100, 100);
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -255,7 +314,7 @@ static void game_update_and_render(platform_info* platform) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     { // === render into scene texture
-        glBindFramebuffer(GL_FRAMEBUFFER, state->renderer.scene_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, state->renderer.scene_framebuffer.id);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         {   
@@ -275,7 +334,7 @@ static void game_update_and_render(platform_info* platform) {
         shader_info* shader = get_shader("scene");
         glUseProgram(shader->id);
         
-        shader_bind_texture(shader, &state->renderer.scene_texture, "scene_texture", 0);
+        shader_bind_texture(shader, state->renderer.scene_texture, "scene_texture", 0);
         
         glBindVertexArray(global->renderer.quad_mesh.vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -283,6 +342,8 @@ static void game_update_and_render(platform_info* platform) {
         glBindVertexArray(0);
         glUseProgram(0);
     }
+    
+    update_and_render_part_buttons();
 }
 
 static void game_resize_window(platform_info* platform) {

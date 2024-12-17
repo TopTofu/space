@@ -222,8 +222,181 @@ mesh make_tank_mesh() {
     return result;
 }
 
+static mesh make_slope_mesh() {
+    float slope = 0.3;
+
+    vertex vertices[10] = {
+        // front
+        { .p = vec3(-.5, -.5, -.5) },
+        { .p = vec3(0.5, -.5, -.5) },
+        { .p = vec3(0.5, 0.5, -.5) },
+        { .p = vec3(0.5 - slope, 0.5, -.5) },
+        { .p = vec3(-.5, -.5 + slope, -.5) },
+    
+        // back
+        { .p = vec3(-.5, -.5, 0.5) },
+        { .p = vec3(0.5, -.5, 0.5) },
+        { .p = vec3(0.5, 0.5, 0.5) },
+        { .p = vec3(0.5 - slope, 0.5, 0.5) },
+        { .p = vec3(-.5, -.5 + slope, 0.5) },
+    };
+    
+    u32 indices[] = {
+        0, 1, 2, 0, 2, 3, 0, 3, 4, // front face
+        5, 7, 6, 5, 8, 7, 5, 9, 8, // back face
+        0, 6, 1, 0, 5, 6,          // bottom
+        1, 6, 7, 1, 7, 2,          // right
+        2, 7, 8, 2, 8, 3,          // top
+        3, 8, 9, 3, 9, 4,          // slope
+        0, 4, 9, 0, 9, 5           // left
+    };
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    print(result.index_count);
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+float wing_inset  = 0.2;
+float wing_half_w = 0.1;  
+static mesh make_wing_mesh() {
+    vertex vertices[] = {
+        // top
+        { .p = vec3( -.5 + wing_inset, wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5 - wing_inset, wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5,              wing_half_w, 0.5 ) },    
+        { .p = vec3( -.5,              wing_half_w, 0.5 ) },
+        
+        // bottom
+        { .p = vec3( -.5 + wing_inset, -wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5 - wing_inset, -wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5,              -wing_half_w, 0.5 ) },    
+        { .p = vec3( -.5,              -wing_half_w, 0.5 ) },    
+    };
+    
+    u32 indices[] = {
+        0, 4, 5, 0, 5, 1, // front
+        1, 5, 6, 1, 6, 2, // right
+        2, 6, 7, 2, 7, 3, // back
+        3, 7, 4, 3, 4, 0, // left
+        0, 1, 2, 0, 2, 3, // top
+        4, 7, 6, 4, 6, 5, // bottom
+    };
+
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+static mesh make_wing_tip_mesh() {
+    vertex vertices[] = {
+        // top
+        { .p = vec3(   0,              wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5 - wing_inset, wing_half_w, 0.5 ) },    
+        { .p = vec3( -.5 + wing_inset, wing_half_w, 0.5 ) },    
+        
+        // bottom
+        { .p = vec3(   0,              -wing_half_w, -.5 ) },    
+        { .p = vec3( 0.5 - wing_inset, -wing_half_w, 0.5 ) },    
+        { .p = vec3( -.5 + wing_inset, -wing_half_w, 0.5 ) },    
+    };
+    
+    u32 indices[] = {
+        0, 1, 2,          // top
+        0, 3, 4, 0, 4, 1, // right
+        1, 4, 5, 1, 5, 2, // back
+        0, 2, 5, 0, 5, 3, // left
+        3, 5, 4,          // bottom
+    };
+
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+
+static inline void init_framebuffer(framebuffer_info* framebuffer) {
+    *framebuffer = (framebuffer_info) { 0 };
+    glGenFramebuffers(1, &framebuffer->id);
+}
+
+typedef struct {
+    u32 min_filter, mag_filter;
+    u32 wrap_t, wrap_s;
+} add_attachment_args;
+
+#define framebuffer_add_attachment(framebuffer, type, width, height, ...) \
+    _framebuffer_add_attachment(framebuffer, type, width, height, (add_attachment_args) { \
+    .min_filter = GL_NEAREST, .mag_filter = GL_NEAREST, .wrap_t = GL_REPEAT, .wrap_s = GL_REPEAT, __VA_ARGS__ })
+    
+static framebuffer_attachment* _framebuffer_add_attachment(framebuffer_info* framebuffer, u32 type, int width, int height, add_attachment_args args) {
+    framebuffer_attachment* result = 0;
+    for (int i = 0; i < FRAMEBUFFER_ATTACHMENT_MAX_COUNT; i++) {
+        if (framebuffer->attachments[i].id == 0) {
+            result = &framebuffer->attachments[i];
+            break;
+        }
+    }
+    
+    if (!result) { return 0; }
+    
+    result->type = type;
+    result->width = width;
+    result->height = height;
+    
+    switch (type) {
+        case GL_COLOR_ATTACHMENT: {
+            glGenTextures(1, &result->id);
+            glBindTexture(GL_TEXTURE_2D, result->id);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            // @Note: these need to be set for the texture to work :)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, args.min_filter);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, args.mag_filter);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, args.wrap_s);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, args.wrap_t);
+        
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
+            
+            result->color_attachment_id = GL_COLOR_ATTACHMENT0 + (framebuffer->color_attachment_count++);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, result->color_attachment_id, GL_TEXTURE_2D, result->id, 0);
+        } break;
+        case GL_DEPTH_ATTACHMENT: {
+            glGenTextures(1, &result->id);
+            glBindTexture(GL_TEXTURE_2D, result->id);
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, result->id, 0);
+        } break;
+        case GL_STENCIL_ATTACHMENT: {} break;
+        case GL_DEPTH_STENCIL_ATTACHMENT: {} break;
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return result;
+}
+
 void init_renderer(game_state* state) {
-    renderer_info renderer;
+    renderer_info* renderer = &state->renderer;
+    int window_w = state->platform->window_width;
+    int window_h = state->platform->window_height;
     
     glClearColor(0., 0., 0.1, 1.0);
     
@@ -239,54 +412,26 @@ void init_renderer(game_state* state) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    renderer.projection_matrix = make_projection_matrix(
-        state->platform->window_width,  
-        state->platform->window_height,
+    renderer->projection_matrix = make_projection_matrix(
+        window_w,  
+        window_h,
         state->camera.fov,
         state->camera.near,
         state->camera.far
     );
     
-    renderer.line_mesh = make_line_mesh();
-    renderer.quad_mesh = make_quad_mesh();
-    renderer.cube_mesh = make_cube_mesh();
+    renderer->line_mesh = make_line_mesh();
+    renderer->quad_mesh = make_quad_mesh();
+    renderer->cube_mesh = make_cube_mesh();
     
-    { // === setup the scene framebuffer
-        int window_w = state->platform->window_width;
-        int window_h = state->platform->window_height;
-    
-        glGenTextures(1, &renderer.scene_texture.id);
-        glBindTexture(GL_TEXTURE_2D, renderer.scene_texture.id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_w, window_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        // @Note: these need to be set for the texture to work :)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        
-        glGenTextures(1, &renderer.scene_depth_buffer);
-        glBindTexture(GL_TEXTURE_2D, renderer.scene_depth_buffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, window_w, window_h, 0, 
-            GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        
-        glGenFramebuffers(1, &renderer.scene_framebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, renderer.scene_framebuffer);
-        
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 
-            renderer.scene_texture.id, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 
-            renderer.scene_depth_buffer, 0);
-            
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-        renderer.scene_texture.w = window_w;
-        renderer.scene_texture.h = window_h;
-        renderer.scene_texture.channels = 4;
-    }
-    
-
-    state->renderer = renderer;
+    init_framebuffer(&renderer->scene_framebuffer);
+    renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
+        GL_COLOR_ATTACHMENT, window_w, window_h);
+    renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
+        GL_DEPTH_ATTACHMENT, window_w, window_h);
 }
 
-char* get_opengl_error_string(int code) {
+static char* get_opengl_error_string(int code) {
     switch(code) {
         case 0x0500: {
             return "GL_INVALID_ENUM";
@@ -659,14 +804,14 @@ typedef struct {
     u32 target;
 } bind_texture_args;
 #define shader_bind_texture(shader, texture, name, index, ...)\
-    _shader_bind_texture(shader, texture, name, index,\
+    _shader_bind_texture(shader, (texture)->id, name, index,\
         (bind_texture_args){ .target = GL_TEXTURE_2D, __VA_ARGS__ })
-void _shader_bind_texture(shader_info* shader, texture_info* texture, char* name, u32 index, bind_texture_args args) {
+void _shader_bind_texture(shader_info* shader, u32 id, char* name, u32 index, bind_texture_args args) {
     int loc = glGetUniformLocation(shader->id, name);
     
     glUniform1i(loc, index);
     glActiveTexture(GL_TEXTURE0 + index);
-    glBindTexture(args.target, texture->id);
+    glBindTexture(args.target, id);
 }
 
 /*
@@ -690,6 +835,32 @@ static void ui_quad(int x, int y, int w, int h, color c) {
     shader_set_uniform(shader, "offset", offset);
     shader_set_uniform(shader, "scale", scale);
     shader_set_uniform(shader, "color", c);
+    
+    glBindVertexArray(global->renderer.quad_mesh.vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+static void ui_quad_textured(int x, int y, int w, int h, u32 texture_id, shader_info* shader) {
+    float window_w = global->platform->window_width;
+    float window_h = global->platform->window_height;
+    
+    vec2 scale = vec2(w / window_w, h / window_h);
+    
+    // @Info: (_x, _y) is the center of the quad    
+    float _x = x + w / 2.0;
+    float _y = y + h / 2.0;
+    
+    vec2 offset = screen_to_ndc(vec2(_x, _y));
+    
+    if (!shader) { shader = get_shader("ui_quad_textured"); }
+    glUseProgram(shader->id);
+    
+    shader_set_uniform(shader, "offset", offset);
+    shader_set_uniform(shader, "scale", scale);
+    _shader_bind_texture(shader, texture_id, "tex", 0, (bind_texture_args) { .target = GL_TEXTURE_2D });
     
     glBindVertexArray(global->renderer.quad_mesh.vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -777,3 +948,4 @@ static void debug_render_quad(vec3 p0, vec3 p1, color c) {
     glBindVertexArray(0);
     glUseProgram(0);
 }
+
