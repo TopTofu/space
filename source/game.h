@@ -219,6 +219,10 @@ typedef struct game_state {
     
     text_input* current_text_input;
     key_input_proc* current_input_proc;
+    
+    quat current_part_rotation;
+    quat current_part_rotation_target;
+    float part_rotation_t;
 } game_state;
 
 game_state* global;

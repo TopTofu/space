@@ -87,10 +87,17 @@ static part_at_mouse_result get_part_at_mouse(ship_info* ship) {
     return result;
 }
 
-quat current_part_rotation = { 0, 0, 0, 1 };
-
 static void update_and_render_part_preview(ship_info* ship, ship_part_type_id type_id) {
     part_at_mouse_result get_result = get_part_at_mouse(ship);
+    
+    if (global->part_rotation_t < 1.0) {
+        global->part_rotation_t += global->time.dt * 2.;
+    } else {
+        global->part_rotation_t = 1.0;
+    }
+    
+    global->current_part_rotation = quat_slerp(global->current_part_rotation,
+        global->part_rotation_t, global->current_part_rotation_target);
     
     if (get_result.part) {
         vec3 quad_offset = vec_sub(collision_quad_get_center(get_result.quad), vec_add(get_result.part->offset, ship->position));
@@ -98,12 +105,11 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
         
         vec3 position = vec_add(ship->position, offset);
         
-        render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = current_part_rotation,
+        render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = global->current_part_rotation,
             .color = (color)RGBA(200, 100, 100, 100));
         
         if (global->mouse.left_down_this_frame) {
-            ship_add_part(ship, position, current_part_rotation, type_id);
-            current_part_rotation = unit_quat();
+            ship_add_part(ship, position, global->current_part_rotation_target, type_id);
         }
     }
 }
@@ -145,6 +151,26 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_WING_TIP] = (ship_part_type) {
         .id = PART_WING_TIP,
         .mesh = make_wing_tip_mesh(),
+    };
+    
+    part_types[PART_CONNECTOR] = (ship_part_type) {
+        .id = PART_CONNECTOR,
+        .mesh = make_connector_mesh(),
+    };
+
+    part_types[PART_QUARTER_TUBE] = (ship_part_type) {
+        .id = PART_QUARTER_TUBE,
+        .mesh = make_quarter_tube_mesh(),
+    };
+    
+    part_types[PART_FIN] = (ship_part_type) {
+        .id = PART_FIN,
+        .mesh = make_fin_mesh(),
+    };
+    
+    part_types[PART_CORNER] = (ship_part_type) {
+        .id = PART_CORNER,
+        .mesh = make_corner_mesh(),
     };
 }
 

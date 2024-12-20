@@ -87,23 +87,31 @@ bool default_key_down_proc(game_state* state, key_event event) {
         } break;
         
         case KEY_R: {
-            current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(90)), current_part_rotation);
+            vec3 axis = vec3(1, 0, 0);
+            float rad = DEG_TO_RAD(90);
+            
+            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
+                state->current_part_rotation = state->current_part_rotation_target;
+            }
+            
+            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
+            state->part_rotation_t = 0;
         } break;
         case KEY_T: {
-            current_part_rotation = quat_mul_quat(quat_from_axis_angle(vec3(0, 1, 0), DEG_TO_RAD(90)), current_part_rotation);
+            vec3 axis = vec3(0, 1, 0);
+            float rad = DEG_TO_RAD(90);
+            
+            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
+                state->current_part_rotation = state->current_part_rotation_target;
+            }
+            
+            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
+            state->part_rotation_t = 0;
         } break;
         
         case KEY_X: {
             delete_part_at_mouse();
         } break;
-        
-        case KEY_1: { comp_id = PART_CUBE; } break;
-        case KEY_2: { comp_id = PART_THRUSTER; } break;
-        case KEY_3: { comp_id = PART_TANK; } break;
-        case KEY_4: { comp_id = PART_SLOPE; } break;
-        case KEY_5: { comp_id = PART_WING; } break;
-        case KEY_6: { comp_id = PART_WING_TIP; } break;
-        
     }
     
     // if (event.code == state->camera.key_left) { state->camera.left = true; } 

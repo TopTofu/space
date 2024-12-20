@@ -140,11 +140,11 @@ static float intersect_ray_plane(vec3 ray_origin, vec3 ray_dir, vec3 plane_origi
     return result;
 }
 
-// @Speed: i feel like most of the branches could go.. 
 
 // @Info: we get the intersection between the ray and the plan the quad is on 
 //        and check if the intersection point is between the quads defining points
 static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad quad) {
+    // @Speed: i feel like most of the branches could go.. 
     // @Note: since the quad is axis-aligned, the normal is the axis where quad.min and quad.max are the same
     vec3 plane_normal = quad.a.x == quad.b.x ? vec3(1, 0, 0) :
                         quad.a.y == quad.b.y ? vec3(0, 1, 0) :
@@ -244,7 +244,12 @@ static void update_and_render_part_buttons() {
         }
         
         bool clicked = button(IDX(id, i), x, y, button_w, button_w, (color)RGB(100, 100, 150));
-        if (clicked) { comp_id = i; }
+        if (clicked) { 
+            comp_id = i; 
+           
+            global->current_part_rotation = (quat) { 0, 0, 0, 1 };
+            global->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
+        }
         
         ui_quad_textured(x, y, button_w, button_w, icon_fb.attachments[0].id, get_shader("part_icon"));
         
@@ -287,6 +292,9 @@ static void game_init_memory(platform_info* platform) {
     init_framebuffer(&icon_fb);
     framebuffer_add_attachment(&icon_fb, GL_COLOR_ATTACHMENT, 100, 100, .wrap_t = GL_CLAMP_TO_EDGE, .wrap_s = GL_CLAMP_TO_EDGE);
     framebuffer_add_attachment(&icon_fb, GL_DEPTH_ATTACHMENT, 100, 100);
+    
+    state->current_part_rotation = (quat) { 0, 0, 0, 1 };
+    state->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
 }
 
 static void game_update_and_render(platform_info* platform) {

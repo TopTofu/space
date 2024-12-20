@@ -10,6 +10,10 @@ typedef enum {
     PART_SLOPE,
     PART_WING,
     PART_WING_TIP,
+    PART_CONNECTOR,
+    PART_QUARTER_TUBE,
+    PART_FIN,
+    PART_CORNER,
     
     PART_TYPE_COUNT
 } ship_part_type_id;

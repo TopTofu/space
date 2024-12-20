@@ -54,3 +54,7 @@ static void camera_rotate_around_y(game_state* state, vec3 p, float deg) {
     float distance = vec_len(vec_sub(cam->position, p));
     cam->position = vec_add(p, vec_mul(cam->forward, distance));
 }
+
+// static bool editor_camera_controls(game_state* state, key_event event) {
+//     switch (
+// }

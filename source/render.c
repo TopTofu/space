@@ -330,6 +330,167 @@ static mesh make_wing_tip_mesh() {
     return result;
 }
 
+static mesh make_connector_mesh() {
+    float gap = 0.1;
+    float size = 0.1;
+    
+    vec3 m0 = vec3(- gap - size, 0., 0.);
+    vec3 m1 = vec3(  gap + size, 0., 0.);
+    
+    vertex vertices[] = {
+        // rod 1
+        // front
+        { .p = vec3(m0.x - size / 2., m0.y - size / 2., -.5) },
+        { .p = vec3(m0.x + size / 2., m0.y - size / 2., -.5) },
+        { .p = vec3(m0.x + size / 2., m0.y + size / 2., -.5) },
+        { .p = vec3(m0.x - size / 2., m0.y + size / 2., -.5) },
+        // back
+        { .p = vec3(m0.x - size / 2., m0.y - size / 2., 0.5) },
+        { .p = vec3(m0.x + size / 2., m0.y - size / 2., 0.5) },
+        { .p = vec3(m0.x + size / 2., m0.y + size / 2., 0.5) },
+        { .p = vec3(m0.x - size / 2., m0.y + size / 2., 0.5) },
+        
+        // rod 2
+        // front
+        { .p = vec3(m1.x - size / 2., m1.y - size / 2., -.5) },
+        { .p = vec3(m1.x + size / 2., m1.y - size / 2., -.5) },
+        { .p = vec3(m1.x + size / 2., m1.y + size / 2., -.5) },
+        { .p = vec3(m1.x - size / 2., m1.y + size / 2., -.5) },
+        // back
+        { .p = vec3(m1.x - size / 2., m1.y - size / 2., 0.5) },
+        { .p = vec3(m1.x + size / 2., m1.y - size / 2., 0.5) },
+        { .p = vec3(m1.x + size / 2., m1.y + size / 2., 0.5) },
+        { .p = vec3(m1.x - size / 2., m1.y + size / 2., 0.5) },
+    };
+    
+    u32 indices[] = {
+        // rod 1
+        0, 1, 2, 0, 2, 3,
+        1, 5, 6, 1, 6, 2, 
+        2, 6, 7, 2, 7, 3,
+        0, 4, 5, 0, 5, 1,
+        0, 3, 7, 0, 7, 4,
+        4, 7, 6, 4, 6, 5,
+    
+        // rod 2        
+        0 + 8, 1 + 8, 2 + 8, 0 + 8, 2 + 8, 3 + 8,
+        1 + 8, 5 + 8, 6 + 8, 1 + 8, 6 + 8, 2 + 8, 
+        2 + 8, 6 + 8, 7 + 8, 2 + 8, 7 + 8, 3 + 8,
+        0 + 8, 4 + 8, 5 + 8, 0 + 8, 5 + 8, 1 + 8,
+        0 + 8, 3 + 8, 7 + 8, 0 + 8, 7 + 8, 4 + 8,
+        4 + 8, 7 + 8, 6 + 8, 4 + 8, 6 + 8, 5 + 8,
+    };
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+static mesh make_quarter_tube_mesh() {
+    int n = 5;
+    float theta = DEG_TO_RAD(360.0 / ((n - 1) * 4.));
+
+    int vertex_count = n * 2;
+    int index_count = (n - 1) * 6;
+    
+    int index_counter = 0;
+
+    vertex* vertices = push_transient(sizeof(vertex) * vertex_count);
+    u32* indices = push_transient(sizeof(u32) * index_count);
+
+    for (int i = 0; i < n; i++) {
+        vertices[i * 2    ].p = vec3(cos(theta * i) - .5, sin(theta * i) - 0.5, -.5);
+        vertices[i * 2 + 1].p = vec3(cos(theta * i) - .5, sin(theta * i) - 0.5, 0.5);
+        
+        if (i < n - 1) {
+            indices[index_counter++] = i * 2;
+            indices[index_counter++] = i * 2 + 1;
+            indices[index_counter++] = i * 2 + 3;
+            
+            indices[index_counter++] = i * 2;
+            indices[index_counter++] = i * 2 + 3;
+            indices[index_counter++] = i * 2 + 2;
+        }
+    }
+    
+    print(index_count);
+    print(index_counter);
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = index_count
+    };
+    
+    result.vao = make_vao(vertices, vertex_count, indices, result.index_count);
+    return result;
+}
+
+static mesh make_fin_mesh() {
+    float width = 0.2;
+    
+    vertex vertices[] = {
+        { .p = vec3(width * -.5, -.5,         -.5) },
+        { .p = vec3(width * 0.5, -.5,         -.5) },
+        { .p = vec3(width * 0.5, -.5 + width, -.5) },
+        { .p = vec3(width * -.5, -.5 + width, -.5) },
+        
+        { .p = vec3(width * -.5, -.5, 0.5) },
+        { .p = vec3(width * 0.5, -.5, 0.5) },
+        { .p = vec3(width * 0.5, 0.5, 0.5) },
+        { .p = vec3(width * -.5, 0.5, 0.5) },
+    };
+    
+    u32 indices[] = {
+        0, 4, 5, 0, 5, 1, // front
+        1, 5, 6, 1, 6, 2, // right
+        2, 6, 7, 2, 7, 3, // back
+        3, 7, 4, 3, 4, 0, // left
+        0, 1, 2, 0, 2, 3, // top
+        4, 7, 6, 4, 6, 5, // bottom
+    };
+
+
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+static mesh make_corner_mesh() {
+    vertex vertices[] = {
+        { .p = vec3(-.5, -.5, 0.5) },
+        { .p = vec3(0.5, -.5, -.5) },
+        { .p = vec3(0.5, 0.5, 0.5) },
+        { .p = vec3(0.5, -.5, 0.5) },
+    };
+    
+    u32 indices[] = {
+        0, 1, 2,
+        0, 3, 1,
+        0, 2, 3,
+        1, 3, 2
+    };
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
 
 static inline void init_framebuffer(framebuffer_info* framebuffer) {
     *framebuffer = (framebuffer_info) { 0 };
