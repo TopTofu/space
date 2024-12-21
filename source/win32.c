@@ -127,10 +127,19 @@ static LRESULT CALLBACK win32_main_window_proc(HWND window, UINT message, WPARAM
             add_event(window_data->platform, event);
         } break;
         case WM_MOUSEWHEEL: {
-            event_info event;
-            event.type = MOUSE_WHEEL_EVENT;
-            event.mouse_wheel_event.scroll = (float)GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
-            add_event(window_data->platform, event);
+            event_info wheel_event;
+            wheel_event.type = MOUSE_WHEEL_EVENT;
+            wheel_event.mouse_wheel_event.scroll = (float)GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
+            add_event(window_data->platform, wheel_event);
+            
+            event_info key_event = { 
+                .type = KEY_INPUT_EVENT,
+                .key_event.code = wheel_event.mouse_wheel_event.scroll > 0 ? KEY_MOUSE_UP : KEY_MOUSE_DOWN,
+                .key_event.is_down = true,
+            };
+            add_event(window_data->platform, key_event);
+            
+            print(wheel_event.mouse_wheel_event.scroll);
         } break;
 
         default: {

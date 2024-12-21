@@ -18,14 +18,7 @@ inline bool keymap_get(game_state* state, u32 key) {
     return (state->keymap[key / 8]) & mask;
 }
 
-int comp_id = 0;
-
-
 bool default_key_down_proc(game_state* state, key_event event) {
-    bool ctrl = keymap_get(state, KEY_CONTROL);
-    bool shift = keymap_get(state, KEY_SHIFT);
-    bool alt = keymap_get(state, KEY_ALT);
-    
     switch (event.code) {
         case KEY_MOUSE_L: {
             state->mouse.left_down_this_frame = true;
@@ -37,87 +30,13 @@ bool default_key_down_proc(game_state* state, key_event event) {
             state->mouse.middle_down_this_frame = true;
         } break;
         
-        case KEY_D: {
-            camera_move_right(state, 0.1);
-        } break;
-        case KEY_A: {
-            camera_move_right(state, -0.1);
-        } break;
-        
-        case KEY_W: {
-            camera_move_forward(state, 0.1);
-        } break;
-        case KEY_S: {
-            camera_move_forward(state, -0.1);
-        } break;
-        
-        case KEY_SPACE: {
-            camera_move_up(state, 0.1);
-        } break;
-        case KEY_SHIFT: {
-            camera_move_up(state, -0.1);
-        } break;
-        
-        case KEY_UP: {
-            camera_rotate_x(state, 5);
-        } break;
-        case KEY_DOWN: {
-            camera_rotate_x(state, -5);
-        } break;
-        
-        case KEY_RIGHT: {
-            camera_rotate_y(state, 5);
-        } break;
-        case KEY_LEFT: {
-            camera_rotate_y(state, -5);
-        } break;
-        
-        case KEY_E: {
-            camera_rotate_around_y(state, vec3(0, state->camera.y, 5), 500);
-        } break;
-        case KEY_Q: {
-            camera_rotate_around_y(state, vec3(0, state->camera.y, 5), -500);
-        } break;
-        
         case KEY_PERIOD: {
             debug_index_count++;
         } break;
         case KEY_COMMA: {
             debug_index_count--;
         } break;
-        
-        case KEY_R: {
-            vec3 axis = vec3(1, 0, 0);
-            float rad = DEG_TO_RAD(90);
-            
-            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
-                state->current_part_rotation = state->current_part_rotation_target;
-            }
-            
-            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
-            state->part_rotation_t = 0;
-        } break;
-        case KEY_T: {
-            vec3 axis = vec3(0, 1, 0);
-            float rad = DEG_TO_RAD(90);
-            
-            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
-                state->current_part_rotation = state->current_part_rotation_target;
-            }
-            
-            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
-            state->part_rotation_t = 0;
-        } break;
-        
-        case KEY_X: {
-            delete_part_at_mouse();
-        } break;
     }
-    
-    // if (event.code == state->camera.key_left) { state->camera.left = true; } 
-    // if (event.code == state->camera.key_right) { state->camera.right = true; } 
-    // if (event.code == state->camera.key_up) { state->camera.up = true; } 
-    // if (event.code == state->camera.key_down) { state->camera.down = true; } 
     
     return true;
 }
@@ -134,11 +53,6 @@ bool default_key_up_proc(game_state* state, key_event event) {
             state->mouse.middle_up_this_frame = true;
         } break;
     }
-    
-    // if (event.code == state->camera.key_left)  { state->camera.left = false; } 
-    // if (event.code == state->camera.key_right) { state->camera.right = false; } 
-    // if (event.code == state->camera.key_up)    { state->camera.up = false; } 
-    // if (event.code == state->camera.key_down)  { state->camera.down = false; } 
     
     return true;
 }
@@ -166,6 +80,10 @@ void process_input(game_state* state) {
         switch (event.type) {
             case KEY_INPUT_EVENT: {
                 u32 code = event.key_event.code;
+                
+                event.key_event.ctrl  = keymap_get(state, KEY_CONTROL);
+                event.key_event.shift = keymap_get(state, KEY_SHIFT);
+                event.key_event.alt   = keymap_get(state, KEY_ALT);
                 
                 keymap_set(state, code, event.key_event.is_down);
                 

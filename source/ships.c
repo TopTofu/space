@@ -1,9 +1,5 @@
 #pragma once
 
-int rotate_x = 0;
-int rotate_y = 0;
-
-
 collision_quad cube_collision_quads[6] = {
     { .a = { 0.5, -.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
     { .a = { -.5, 0.5, -.5 }, .b = { 0.5, 0.5, 0.5 } },
@@ -40,6 +36,8 @@ static void ship_add_part(ship_info* ship, vec3 position, quat rotation, ship_pa
     }
     
     if (!part) { return; }
+    
+    ship->part_count++;
     
     part->type_id = type_id;
     part->active = true;
@@ -115,10 +113,20 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
 }
 
 static void delete_part_at_mouse() {
+    if (ship.part_count <= 1) { return; }
     part_at_mouse_result get_result = get_part_at_mouse(&ship);
     
     if (get_result.part) {
         get_result.part->active = false;
+        ship.part_count--;
+    }
+}
+
+static void pick_part_type_at_mouse() {
+    part_at_mouse_result get_result = get_part_at_mouse(&ship);
+    
+    if (get_result.part) {
+        global->current_part_type_id = get_result.part->type_id;
     }
 }
 

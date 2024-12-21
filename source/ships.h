@@ -36,6 +36,7 @@ typedef struct {
 } ship_part;
 
 typedef struct {
+    int part_count;
     ship_part parts[SHIP_PART_MAX_COUNT];
     
     vec3 position;

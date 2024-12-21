@@ -188,8 +188,6 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
     return -1;
 }
 
-
-
 // === source includes
 #include "render.c"
 #include "camera.c"
@@ -197,6 +195,82 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 #include "ships.c"
 #include "input.c"
 
+static bool editor_controls(game_state* state, key_event event) { 
+    camera_info* cam = &state->camera;
+
+    bool result = true;
+    
+    switch (event.code) {
+        case KEY_A: {
+            cam->controls.left = event.is_down;
+        } break;
+        case KEY_D: {
+            cam->controls.right = event.is_down;
+        } break;
+        
+        case KEY_MOUSE_DOWN: {
+            cam->controls.backward = event.is_down;
+        } break;
+        case KEY_MOUSE_UP: {
+            cam->controls.forward = event.is_down;
+        } break;
+        
+        case KEY_W: {
+            cam->controls.pitch_up = event.is_down;
+        } break;
+        case KEY_S: {
+            cam->controls.pitch_down = event.is_down;
+        } break;
+        
+        default: { result = false; } break;
+    }
+    
+    if (result) { return result; }
+    
+    if (!event.is_down) { return result; }
+    result = true;
+    
+    switch (event.code) {
+        case KEY_C: {
+            camera_set_default(cam);
+        } break;
+        
+        case KEY_Q: {
+            pick_part_type_at_mouse();
+        } break;
+        
+        case KEY_X: {
+            delete_part_at_mouse();
+        } break;
+        
+        case KEY_R: {
+            vec3 axis = vec3(1, 0, 0);
+            float rad = DEG_TO_RAD(90);
+            
+            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
+                state->current_part_rotation = state->current_part_rotation_target;
+            }
+            
+            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
+            state->part_rotation_t = 0;
+        } break;
+        case KEY_T: {
+            vec3 axis = vec3(0, 1, 0);
+            float rad = DEG_TO_RAD(90);
+            
+            if (!vec_eq(state->current_part_rotation, state->current_part_rotation_target)) {
+                state->current_part_rotation = state->current_part_rotation_target;
+            }
+            
+            state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
+            state->part_rotation_t = 0;
+        } break;
+
+        default: { result = false; } break;
+    }
+    
+    return result;
+}
 
 framebuffer_info icon_fb;
 static void update_and_render_part_buttons() {
@@ -215,7 +289,7 @@ static void update_and_render_part_buttons() {
     for (int i = 0; i < PART_TYPE_COUNT; i++) {
         ship_part_type type = part_types[i];
         
-        if (comp_id == i) { ui_quad(x - 2, y - 2, button_w + 4, button_w + 4, (color)white()); }
+        if (global->current_part_type_id == i) { ui_quad(x - 2, y - 2, button_w + 4, button_w + 4, (color)white()); }
         
         {   
             glBindFramebuffer(GL_FRAMEBUFFER, icon_fb.id);
@@ -245,7 +319,7 @@ static void update_and_render_part_buttons() {
         
         bool clicked = button(IDX(id, i), x, y, button_w, button_w, (color)RGB(100, 100, 150));
         if (clicked) { 
-            comp_id = i; 
+            global->current_part_type_id = i; 
            
             global->current_part_rotation = (quat) { 0, 0, 0, 1 };
             global->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
@@ -281,10 +355,9 @@ static void game_init_memory(platform_info* platform) {
     init_renderer(state);    
     load_all_shaders(state, "../source/shaders/");
 
-    camera_set_default(state);
+    camera_set_default(&state->camera);
 
     init_ship_part_types(state);
-    ship.position.z = 5;
 
     ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
     
@@ -295,6 +368,8 @@ static void game_init_memory(platform_info* platform) {
     
     state->current_part_rotation = (quat) { 0, 0, 0, 1 };
     state->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
+    
+    bind_key_input_proc(editor_controls);
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -304,6 +379,8 @@ static void game_update_and_render(platform_info* platform) {
     process_input(state);
     
     ui_frame_begin(state);
+    
+    update_editor_camera(state);
     
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -315,10 +392,7 @@ static void game_update_and_render(platform_info* platform) {
         state->camera.near,
         state->camera.far
     );
-    
-    state->camera.view_matrix = make_view_matrix(state->camera.position, 
-        state->camera.forward, state->camera.up, state->camera.right);
-        
+
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     { // === render into scene texture
@@ -327,7 +401,9 @@ static void game_update_and_render(platform_info* platform) {
         
         {   
             render_ship(&ship);
-            update_and_render_part_preview(&ship, comp_id);
+            update_and_render_part_preview(&ship, state->current_part_type_id);
+            
+            debug_render_quad(vec3(-10, -1, -10), vec3(10, -1, 10), (color)WHITE);
             
             // render_mesh_basic(m, .translation = vec3(0, 0, 5));
             // .rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));

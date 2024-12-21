@@ -587,7 +587,7 @@ void init_renderer(game_state* state) {
     
     init_framebuffer(&renderer->scene_framebuffer);
     renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
-        GL_COLOR_ATTACHMENT, window_w, window_h);
+        GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_DEPTH_ATTACHMENT, window_w, window_h);
 }

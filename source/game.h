@@ -82,6 +82,9 @@ typedef struct {
     bool is_down;
     bool was_down;
     bool held;
+    bool ctrl;
+    bool shift;
+    bool alt;
 } key_event;
 
 typedef struct {
@@ -153,7 +156,17 @@ typedef struct {
     float near, far;
     float fov;
     
-    u32 key_left, key_right, key_up, key_down;
+    struct {
+        bool up, down;
+        bool right, left;
+        bool forward, backward;
+        bool pitch_up, pitch_down;
+    } controls;
+    
+    struct {
+        vec3 rotation;
+        vec3 translation;
+    } params;
 } camera_info;
 
 #define MAX_EVENT_COUNT 128
@@ -223,6 +236,8 @@ typedef struct game_state {
     quat current_part_rotation;
     quat current_part_rotation_target;
     float part_rotation_t;
+    
+    int current_part_type_id;
 } game_state;
 
 game_state* global;

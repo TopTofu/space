@@ -471,8 +471,8 @@ mat4 make_view_matrix(vec3 position, vec3 forward, vec3 up, vec3 right) {
     result.columns[1].z = forward.y;
     result.columns[2].z = forward.z;
     
-    result.columns[3].x = -right.x * position.x - right.y * position.y - right.z * position.z;
-    result.columns[3].y = -up.x * position.x - up.y * position.y - up.z * position.z;
+    result.columns[3].x = -right.x   * position.x - right.y   * position.y - right.z   * position.z;
+    result.columns[3].y = -up.x      * position.x - up.y      * position.y - up.z      * position.z;
     result.columns[3].z = -forward.x * position.x - forward.y * position.y - forward.z * position.z;
     
     return result;
