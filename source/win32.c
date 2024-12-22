@@ -138,8 +138,6 @@ static LRESULT CALLBACK win32_main_window_proc(HWND window, UINT message, WPARAM
                 .key_event.is_down = true,
             };
             add_event(window_data->platform, key_event);
-            
-            print(wheel_event.mouse_wheel_event.scroll);
         } break;
 
         default: {

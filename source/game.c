@@ -123,7 +123,7 @@ static vec3 ray_from_screen(vec2 screen) {
     vec4 temp = vec_transform(inverse_projection, clip_space);
     vec4 eye_space = vec4(temp.x, temp.y, -1, 0);
     
-    mat4 inverse_view = mat4_inv(global->camera.view_matrix);
+    mat4 inverse_view = mat4_inv(global->current_camera->view_matrix);
     vec3 result = vec_transform(inverse_view, eye_space).xyz;
     
     result = vec_norm(result);
@@ -196,7 +196,7 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 #include "input.c"
 
 static bool editor_controls(game_state* state, key_event event) { 
-    camera_info* cam = &state->camera;
+    camera_info* cam = &state->editor_camera;
 
     bool result = true;
     
@@ -352,10 +352,12 @@ static void game_init_memory(platform_info* platform) {
         platform->transient_storage_size,
         (u8*)platform->transient_storage);
     
-    init_renderer(state);    
     load_all_shaders(state, "../source/shaders/");
 
-    camera_set_default(&state->camera);
+    camera_set_default(&state->editor_camera);
+    state->current_camera = &state->editor_camera;
+    
+    init_renderer(state);    
 
     init_ship_part_types(state);
 
@@ -388,9 +390,9 @@ static void game_update_and_render(platform_info* platform) {
     state->renderer.projection_matrix = make_projection_matrix(
         state->platform->window_width,  
         state->platform->window_height,
-        state->camera.fov,
-        state->camera.near,
-        state->camera.far
+        state->current_camera->fov,
+        state->current_camera->near,
+        state->current_camera->far
     );
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -403,7 +405,7 @@ static void game_update_and_render(platform_info* platform) {
             render_ship(&ship);
             update_and_render_part_preview(&ship, state->current_part_type_id);
             
-            debug_render_quad(vec3(-10, -1, -10), vec3(10, -1, 10), (color)WHITE);
+            debug_render_quad(vec3(-10, -1, -10), vec3(10, -1, 10), (color)RGBA(255, 255, 255, 100));
             
             // render_mesh_basic(m, .translation = vec3(0, 0, 5));
             // .rotation = quat_from_axis_angle(vec3(0, 1, 0), state->time.in_seconds));

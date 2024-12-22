@@ -257,8 +257,6 @@ static mesh make_slope_mesh() {
         .index_count = array_count(indices)
     };
     
-    print(result.index_count);
-    
     result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
     return result;
 }
@@ -418,9 +416,6 @@ static mesh make_quarter_tube_mesh() {
         }
     }
     
-    print(index_count);
-    print(index_counter);
-    
     mesh result = { .primitive = GL_TRIANGLES, 
         .scale = vec3(1, 1, 1),
         .rotation = unit_quat(),
@@ -576,9 +571,9 @@ void init_renderer(game_state* state) {
     renderer->projection_matrix = make_projection_matrix(
         window_w,  
         window_h,
-        state->camera.fov,
-        state->camera.near,
-        state->camera.far
+        state->current_camera->fov,
+        state->current_camera->near,
+        state->current_camera->far
     );
     
     renderer->line_mesh = make_line_mesh();
@@ -1052,7 +1047,7 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     mat4 model = make_model_matrix(vec_add(args.translation, m.translation), 
                                    vec_mul(vec_mul(args.scale_v, args.scale), m.scale), 
                                    quat_mul_quat(args.rotation, m.rotation));
-    mat4 view = global->camera.view_matrix;
+    mat4 view = global->current_camera->view_matrix;
     mat4 proj = global->renderer.projection_matrix;
     
     shader_set_uniform(shader, "model", model);
@@ -1062,8 +1057,6 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     
     glBindVertexArray(m.vao);
     glDrawElements(m.primitive, m.index_count, GL_UNSIGNED_INT, 0);
-    // glDrawElements(m.primitive, MIN(debug_index_count, m.index_count), GL_UNSIGNED_INT, 0);
-    // print(debug_index_count);
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -1073,7 +1066,7 @@ static void render_mesh(mesh m, shader_info* shader) {
     glUseProgram(shader->id);
     
     mat4 model = make_model_matrix(m.translation, m.scale, m.rotation);
-    mat4 view = global->camera.view_matrix;
+    mat4 view = global->current_camera->view_matrix;
     mat4 proj = global->renderer.projection_matrix;
     
     shader_set_uniform(shader, "model", model);
@@ -1093,7 +1086,7 @@ static void debug_render_quad(vec3 p0, vec3 p1, color c) {
     
     mesh m = global->renderer.line_mesh;
 
-    mat4 view = global->camera.view_matrix;
+    mat4 view = global->current_camera->view_matrix;
     mat4 proj = global->renderer.projection_matrix;
 
     shader_set_uniform(shader, "view", view);

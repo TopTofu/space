@@ -72,7 +72,7 @@ static part_at_mouse_result get_part_at_mouse(ship_info* ship) {
             quad.a = vec_add(quad.a, part_position);
             quad.b = vec_add(quad.b, part_position);
             
-            float d = intersect_ray_quad(global->camera.position, ray, quad);
+            float d = intersect_ray_quad(global->editor_camera.position, ray, quad);
                         
             if (d >= 0 && d < result.distance) { 
                 result.distance = d;

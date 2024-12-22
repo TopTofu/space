@@ -66,7 +66,7 @@ static void camera_rotate_x_around_point(camera_info* cam, vec3 p, float deg) {
 }
 
 static void update_editor_camera(game_state* state) {
-    camera_info* cam = &state->camera;
+    camera_info* cam = &state->editor_camera;
     camera_reset(cam);
     
     float cam_speed = keymap_get(state, KEY_SHIFT) ? 3. : 1.;

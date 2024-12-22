@@ -218,7 +218,9 @@ typedef struct game_state {
     memory_arena permanent_arena;
     memory_arena transient_arena;
 
-    camera_info camera;
+    camera_info editor_camera;
+    camera_info* current_camera;
+    
     mouse_info mouse;
     u8 keymap[32];
     
