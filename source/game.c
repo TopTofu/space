@@ -421,6 +421,10 @@ static void game_update_and_render(platform_info* platform) {
         glUseProgram(shader->id);
         
         shader_bind_texture(shader, state->renderer.scene_texture, "scene_texture", 0);
+        shader_bind_texture(shader, state->renderer.scene_depth_texture, "scene_depth", 0);
+        
+        shader_set_uniform(shader, "far", state->current_camera->far);
+        shader_set_uniform(shader, "near", state->current_camera->near);
         
         glBindVertexArray(global->renderer.quad_mesh.vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

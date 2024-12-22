@@ -27,6 +27,10 @@ void main() {
 in vec2 uv;
 
 uniform sampler2D scene_texture;
+uniform sampler2D scene_depth;
+
+uniform float near;
+uniform float far;
 
 out vec4 out_color;
 
@@ -65,6 +69,12 @@ float get_sobel_edge() {
     return sqrt(g_x * g_x + g_y * g_y);
 }
 
+float linearize_depth(float depth) {
+    float ndc = depth * 2.0 - 1.0;
+    float result = (2.0 * near * far) / (far + near - ndc * (far - near));
+    return result;
+}
+
 void main() {
     vec4 scene = texture(scene_texture, uv);
 
@@ -75,7 +85,10 @@ void main() {
     sobel = step(0.01, sobel);
     out_color = vec4(sobel, sobel, sobel, 1) * green;
 
-    // out_color = scene;
+    out_color = scene;
+    
+    float depth = texture(scene_depth, uv).x; 
+    out_color = vec4(vec3(linearize_depth(depth) / far), 1.);
 }
 
 

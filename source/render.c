@@ -516,32 +516,36 @@ static framebuffer_attachment* _framebuffer_add_attachment(framebuffer_info* fra
     result->width = width;
     result->height = height;
     
+    glGenTextures(1, &result->id);
+    glBindTexture(GL_TEXTURE_2D, result->id);
+    // @Note: these need to be set for the texture to work :)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, args.min_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, args.mag_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, args.wrap_s);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, args.wrap_t);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
+    
     switch (type) {
         case GL_COLOR_ATTACHMENT: {
-            glGenTextures(1, &result->id);
-            glBindTexture(GL_TEXTURE_2D, result->id);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-            // @Note: these need to be set for the texture to work :)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, args.min_filter);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, args.mag_filter);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, args.wrap_s);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, args.wrap_t);
-        
-            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
             
             result->color_attachment_id = GL_COLOR_ATTACHMENT0 + (framebuffer->color_attachment_count++);
             glFramebufferTexture2D(GL_FRAMEBUFFER, result->color_attachment_id, GL_TEXTURE_2D, result->id, 0);
         } break;
         case GL_DEPTH_ATTACHMENT: {
-            glGenTextures(1, &result->id);
-            glBindTexture(GL_TEXTURE_2D, result->id);
-            
-            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, result->id, 0);
         } break;
         case GL_STENCIL_ATTACHMENT: {} break;
         case GL_DEPTH_STENCIL_ATTACHMENT: {} break;
+        
+        default: {
+            report("Unsupported attachment type (%i)!\n", type);
+            glDeleteTextures(1, &result->id);
+            *result = (framebuffer_attachment) { 0 };
+            result = 0;
+        } break;
     }
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -584,7 +588,7 @@ void init_renderer(game_state* state) {
     renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
-        GL_DEPTH_ATTACHMENT, window_w, window_h);
+        GL_DEPTH_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
 }
 
 static char* get_opengl_error_string(int code) {
