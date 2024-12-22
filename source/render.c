@@ -587,6 +587,8 @@ void init_renderer(game_state* state) {
     init_framebuffer(&renderer->scene_framebuffer);
     renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
+    renderer->scene_per_object_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer,
+        GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_DEPTH_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
 }
@@ -1048,7 +1050,9 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     shader_info* shader = get_shader("game_object");
     glUseProgram(shader->id);
     
-    mat4 model = make_model_matrix(vec_add(args.translation, m.translation), 
+    vec3 translation = vec_add(args.translation, m.translation);
+    
+    mat4 model = make_model_matrix(translation, 
                                    vec_mul(vec_mul(args.scale_v, args.scale), m.scale), 
                                    quat_mul_quat(args.rotation, m.rotation));
     mat4 view = global->current_camera->view_matrix;
@@ -1058,6 +1062,8 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     shader_set_uniform(shader, "view", view);
     shader_set_uniform(shader, "projection", proj);
     shader_set_uniform(shader, "color", args.color);
+    
+    shader_set_uniform(shader, "translation", translation);
     
     glBindVertexArray(m.vao);
     glDrawElements(m.primitive, m.index_count, GL_UNSIGNED_INT, 0);

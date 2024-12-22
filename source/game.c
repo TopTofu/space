@@ -399,7 +399,18 @@ static void game_update_and_render(platform_info* platform) {
     
     { // === render into scene texture
         glBindFramebuffer(GL_FRAMEBUFFER, state->renderer.scene_framebuffer.id);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        u32 draw_buffers[] = { 
+            state->renderer.scene_texture->color_attachment_id, 
+            state->renderer.scene_per_object_depth_texture->color_attachment_id,
+        };
+        glDrawBuffers(array_count(draw_buffers), draw_buffers);
+        
+        float scene_clear_color[] = { 0., 0., 0., 1. };
+        glClearTexImage(state->renderer.scene_texture->id, 0, GL_RGBA, GL_FLOAT, scene_clear_color);
+        float per_object_depth_clear_color[] = { 1., 1., 1., 1. };
+        glClearTexImage(state->renderer.scene_per_object_depth_texture->id, 0, GL_RGBA, GL_FLOAT, scene_clear_color);
+        
+        glClear(GL_DEPTH_BUFFER_BIT);
         
         {   
             render_ship(&ship);
@@ -421,7 +432,8 @@ static void game_update_and_render(platform_info* platform) {
         glUseProgram(shader->id);
         
         shader_bind_texture(shader, state->renderer.scene_texture, "scene_texture", 0);
-        shader_bind_texture(shader, state->renderer.scene_depth_texture, "scene_depth", 0);
+        shader_bind_texture(shader, state->renderer.scene_per_object_depth_texture, "scene_per_object_depth", 1);
+        shader_bind_texture(shader, state->renderer.scene_depth_texture, "scene_depth", 2);
         
         shader_set_uniform(shader, "far", state->current_camera->far);
         shader_set_uniform(shader, "near", state->current_camera->near);

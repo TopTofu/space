@@ -10,13 +10,20 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform vec3 translation;
+
 out vertex_shader_out {
     vec4 world_position;
+    float object_depth;
 } vs_out;
 
 void main() {
     gl_Position = projection * view * model * vec4(in_position, 1.0f);
     vs_out.world_position = model * vec4(in_position, 1.0f);
+    
+    // @Note object depth is in [0, 1] where 0 is at the near plane and 1 is at the far plane
+    vec4 clip_space = projection * view * vec4(translation, 1.f);
+    vs_out.object_depth = clip_space.z / clip_space.w;
 }
 
 
@@ -29,10 +36,12 @@ layout (triangle_strip, max_vertices = 3) out;
 
 in vertex_shader_out {
     vec4 world_position;
+    float object_depth;
 } gs_in[];
 
 out geometry_shader_out {
     vec3 normal;
+    float object_depth;
 } gs_out;
 
 void main() {
@@ -42,6 +51,7 @@ void main() {
 
     vec3 normal = cross(v0.xyz - v1.xyz, v2.xyz - v1.xyz);
     gs_out.normal = normalize(normal);
+    gs_out.object_depth = gs_in[0].object_depth;
     
     gl_Position = gl_in[0].gl_Position; 
     EmitVertex();
@@ -62,14 +72,18 @@ uniform vec4 color;
 
 in geometry_shader_out {
     vec3 normal;
+    float object_depth;
 } fs_in;
 
-out vec4 out_color;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 object_depth; 
 
 void main() {
     vec3 unilateral_normal = fs_in.normal * 0.5 + 0.5; // between 0 and 1
     out_color.xyz = unilateral_normal;
     out_color.w = color.w;
+    
+    object_depth = vec4(vec3(fs_in.object_depth), 1.);
 }
 
 

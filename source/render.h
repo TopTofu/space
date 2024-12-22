@@ -67,6 +67,7 @@ typedef struct {
     framebuffer_info scene_framebuffer;
     framebuffer_attachment* scene_texture;
     framebuffer_attachment* scene_depth_texture;
+    framebuffer_attachment* scene_per_object_depth_texture;
 } renderer_info;
 
 #define shader_set_uniform(shader, name, x) _Generic((x), int: shader_set_int,      \
