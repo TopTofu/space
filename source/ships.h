@@ -14,6 +14,7 @@ typedef enum {
     PART_QUARTER_TUBE,
     PART_FIN,
     PART_CORNER,
+    PART_DRILL,
     
     PART_TYPE_COUNT
 } ship_part_type_id;

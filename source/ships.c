@@ -13,6 +13,28 @@ static inline vec3 collision_quad_get_center(collision_quad quad) {
     return vec_add(quad.a, vec_mul(vec_sub(quad.b, quad.a), 0.5f));
 }
 
+static void save_ship_to_file(char* file_path, ship_info* ship) {
+    FILE* file = fopen(file_path, "wb");
+    if (!file) {
+        report("Could not open file to save ship (path: %s)\n", file_path);
+        return;    
+    }
+
+    fwrite(ship, sizeof(*ship), 1, file);
+    fclose(file);
+}
+
+static void load_ship_from_file(char* file_path, ship_info* ship) {
+    FILE* file = fopen(file_path, "rb");
+    if (!file) {
+        report("Could not open file to load ship (path: %s)\n", file_path);
+        return;    
+    }
+
+    fread(ship, sizeof(*ship), 1, file);
+    fclose(file);
+}
+
 static void render_ship(ship_info* ship) {
     for (int i = 0; i < SHIP_PART_MAX_COUNT; i++) {
         ship_part part = ship->parts[i];
@@ -43,6 +65,8 @@ static void ship_add_part(ship_info* ship, vec3 position, quat rotation, ship_pa
     part->active = true;
     part->offset = vec_sub(position, ship->position);
     part->rotation = rotation;
+    
+    save_ship_to_file("../ship.sp", ship); 
 }
 
 typedef struct {
@@ -179,6 +203,11 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_CORNER] = (ship_part_type) {
         .id = PART_CORNER,
         .mesh = make_corner_mesh(),
+    };
+    
+    part_types[PART_DRILL] = (ship_part_type) {
+        .id = PART_DRILL,
+        .mesh = load_obj("../data/drill.obj"),
     };
 }
 

@@ -361,7 +361,10 @@ static void game_init_memory(platform_info* platform) {
 
     init_ship_part_types(state);
 
-    ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
+    load_ship_from_file("../ship.sp", &ship);
+    if (!ship.part_count) {
+        ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
+    }
     
     // m = make_wing_mesh();
     init_framebuffer(&icon_fb);

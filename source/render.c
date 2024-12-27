@@ -33,6 +33,71 @@ static u32 make_vao(vertex* vertices, int vertex_count, u32* indices, int index_
     return result;
 }
 
+mesh load_obj(char* file_path) {
+    string source = read_file(string(file_path), &global->transient_arena);
+    
+    string comment_prefix   = string("#");
+    string group_prefix     = string("g");
+    string vertex_prefix    = string("v");
+    string uv_prefix        = string("vt");
+    string normal_prefix    = string("vn");
+    string face_prefix      = string("f");
+    string line_prefix      = string("l");
+
+    int vertex_count = 0;
+    int index_count = 0;
+    
+    string cursor = source;
+    while (cursor.length) {
+        string line = string_eat_line(&cursor);
+        string prefix = string_eat_token(&line, ' ');
+
+        if (string_compare(prefix, vertex_prefix)) { vertex_count++; }
+        if (string_compare(prefix, face_prefix)) { index_count += 3; }
+    }   
+    
+    vertex* vertices = push_transient(sizeof(vertices[0]) * vertex_count * 3);
+    u32* indices     = push_transient(sizeof(indices[0]) * index_count);
+
+    int vertex_i = 0;
+    int index_i = 0;
+
+    cursor = source;
+    while (cursor.length) {
+        string line = string_eat_line(&cursor);
+        string prefix = string_eat_token(&line, ' ');
+        if (string_compare(prefix, comment_prefix)) { }
+        else if (string_compare(prefix, group_prefix)) { }
+        else if (string_compare(prefix, vertex_prefix)) { 
+            float x = string_eat_double(&line);
+            float y = string_eat_double(&line);
+            float z = string_eat_double(&line);
+            
+            vertices[vertex_i++].p = vec3(x, y, z);
+        }
+        
+        else if (string_compare(prefix, uv_prefix)) { }
+        else if (string_compare(prefix, normal_prefix)) { }
+        else if (string_compare(prefix, face_prefix)) {
+            while (line.length) {
+                int a = string_eat_int(&line, 10) - 1; 
+                indices[index_i++] = a;
+                string_eat_token(&line, ' ');
+            }
+        }
+        else if (string_compare(prefix, line_prefix)) { }
+    }
+    
+    mesh result = { .primitive = GL_TRIANGLES,
+                .index_count = index_count,
+                .scale = vec3(1, 1, 1),
+                .rotation = unit_quat() };
+    
+    result.vao = make_vao(vertices, vertex_count, indices, index_count);
+    
+    return result;
+}
+
 mesh make_line_mesh() {
     // @info: this mesh is for debugging. it should be rendered using the immediate_line shader.
     //        since the shader takes 2 uniform positions and draws the line using the geometry shader

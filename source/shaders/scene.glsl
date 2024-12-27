@@ -96,9 +96,8 @@ void main() {
     depth_sobel = step(0.1, depth_sobel) + sobel;
     out_color = vec4(vec3((depth_sobel)), 1.) * green;
     
-    // out_color = texture(scene_per_object_depth, uv);
-    
-    
+    //out_color = texture(scene_per_object_depth, uv);
+    //out_color = scene;  
 }
 
 
