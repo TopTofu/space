@@ -2,6 +2,9 @@
 
 #define DEV 1
 
+#define VERSION_MAJOR 0
+#define VERSION_MINOR 1
+
 #undef near
 #undef far
 

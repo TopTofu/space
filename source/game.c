@@ -8,7 +8,7 @@ int debug_index_count = 12;
 
 /* @Todos:
     [x] handle windows resizing
-    [ ] save/load interface, multiple save files
+    [x] save/load interface, multiple save files
     [ ] window width dependent part ui
     [ ] mouse controls for editor camera
     [ ] show part count limit
@@ -461,6 +461,19 @@ static void game_update_and_render(platform_info* platform) {
     
     update_and_render_ship_saves_interface(state);
     update_and_render_part_buttons();
+    
+    {
+        string buffer = string_buffer(32);
+        string_write(&buffer, "Version: ");
+        string_write(&buffer, VERSION_MAJOR);
+        string_write(&buffer, ".");
+        string_write(&buffer, VERSION_MINOR);
+        
+        int height = 16;
+        float width = get_text_width_single_line(buffer, height);
+        render_text(buffer, platform->window_width - width * 1.1, height * 1.1, .height = height, 
+            .color = RGBA(255, 255, 255, 150));
+    }
 }
 
 static void game_resize_window(platform_info* platform) {
