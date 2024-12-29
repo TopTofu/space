@@ -8,6 +8,7 @@ layout (location = 2) in vec3 in_normal;
 
 uniform vec2 offset;
 uniform vec2 scale;
+uniform mat4 rotation;
 
 out vec2 uv;
 

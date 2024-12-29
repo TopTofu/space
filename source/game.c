@@ -3,7 +3,7 @@
 #include "game.h"
 #include "memory.c"
 
-int debug_index_count = 12;
+int debug_index_count = 0;
 
 
 /* @Todos:
@@ -11,7 +11,7 @@ int debug_index_count = 12;
     [x] save/load interface, multiple save files
     [x] window width dependent part ui
     [ ] mouse controls for editor camera
-    [ ] show part count limit
+    [x] show part count limit
 */
 
 // === utils
@@ -390,7 +390,7 @@ static void update_and_render_part_buttons() {
             global->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
         }
         
-        ui_quad_textured(x, y, button_w, button_w, icon_fb.attachments[0].id, get_shader("part_icon"));
+        ui_quad_textured(x, y, button_w, button_w, icon_fb.attachments[0].id, .shader = get_shader("part_icon"));
         
         x += button_w + pad;
     }

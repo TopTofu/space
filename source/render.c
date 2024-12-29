@@ -564,6 +564,32 @@ static mesh make_corner_mesh() {
     return result;
 }
 
+static mesh mesh_cube_frame_mesh() {
+    vertex vertices[8] = {
+        { .p = vec3(-.5, -.5, -.5) },
+        { .p = vec3(+.5, -.5, -.5) },
+        { .p = vec3(+.5, +.5, -.5) },
+        { .p = vec3(-.5, +.5, -.5) },
+        { .p = vec3(-.5, -.5, +.5) },
+        { .p = vec3(+.5, -.5, +.5) },
+        { .p = vec3(+.5, +.5, +.5) },
+        { .p = vec3(-.5, +.5, +.5) }
+    };
+    
+    u32 indices[] = {
+        0, 1, 1, 2, 2, 3, 3, 0, 1, 5, 5, 4, 4, 0, 2, 6, 6, 5, 6, 7, 7, 3, 4, 7
+    };
+    
+    mesh result = { .primitive = GL_LINES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices)
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
 
 static inline void init_framebuffer(framebuffer_info* framebuffer) {
     *framebuffer = (framebuffer_info) { 0 };
@@ -688,8 +714,8 @@ void init_renderer(game_state* state) {
     renderer->line_mesh = make_line_mesh();
     renderer->quad_mesh = make_quad_mesh();
     renderer->cube_mesh = make_cube_mesh();
+    renderer->cube_frame_mesh = mesh_cube_frame_mesh();
 
-        
     init_framebuffer(&renderer->scene_framebuffer);
 
     renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
@@ -703,7 +729,7 @@ void init_renderer(game_state* state) {
 }
 
 static inline void scissor(int x, int y, int w, int h) {
-    glScissor(x, global->platform->window_height - y, w, h);
+    glScissor(x, global->platform->window_height - y - h, w, h);
 }
 
 static inline void scissor_reset() {
@@ -1122,7 +1148,14 @@ static void ui_quad(int x, int y, int w, int h, color c) {
     glUseProgram(0);
 }
 
-static void ui_quad_textured(int x, int y, int w, int h, u32 texture_id, shader_info* shader) {
+typedef struct {
+    quat rotation;
+    shader_info* shader;
+} ui_quad_textured_args;
+#define ui_quad_textured(x, y, w, h, tex, ...) \
+    _ui_quad_textured(x, y, w, h, tex, (ui_quad_textured_args) { .shader = 0, .rotation = unit_quat(), __VA_ARGS__ })
+
+static void _ui_quad_textured(int x, int y, int w, int h, u32 texture_id, ui_quad_textured_args args) {
     float window_w = global->platform->window_width;
     float window_h = global->platform->window_height;
     
@@ -1134,12 +1167,13 @@ static void ui_quad_textured(int x, int y, int w, int h, u32 texture_id, shader_
     
     vec2 offset = screen_to_ndc(vec2(_x, _y));
     
-    if (!shader) { shader = get_shader("ui_quad_textured"); }
-    glUseProgram(shader->id);
+    if (!args.shader) { args.shader = get_shader("ui_quad_textured"); }
+    glUseProgram(args.shader->id);
     
-    shader_set_uniform(shader, "offset", offset);
-    shader_set_uniform(shader, "scale", scale);
-    _shader_bind_texture(shader, texture_id, "tex", 0, (bind_texture_args) { .target = GL_TEXTURE_2D });
+    shader_set_uniform(args.shader, "offset", offset);
+    shader_set_uniform(args.shader, "scale", scale);
+    shader_set_uniform(args.shader, "rotation", quat_to_mat(args.rotation));
+    _shader_bind_texture(args.shader, texture_id, "tex", 0, (bind_texture_args) { .target = GL_TEXTURE_2D });
     
     glBindVertexArray(global->renderer.quad_mesh.vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

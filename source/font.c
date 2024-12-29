@@ -88,7 +88,6 @@ vec2 _render_text(string text, int x, int y, render_text_args args) {
     glBindVertexArray(global->renderer.quad_mesh.vao);
     
     // @Info: This is needed since the base quad is centered at (x, y)
-    // @Todo: Maybe we should change that
     x += scaled_width / 2.f;
     y += font->glyph_height / 2.f * scale;
     
@@ -134,8 +133,9 @@ vec2 _render_text(string text, int x, int y, render_text_args args) {
 
 vec2 _render_text_centered(string text, int x, int y, render_text_args args) {
     // @Todo: new line will break this
-    int total_pixel_width = args.count * global->font.x_advance * get_font_scale_for_pixel_height(args.height);
-    int new_x = x - (total_pixel_width / 2.f);
-    return _render_text(text, new_x, y, args);
+    float scale = args.height / (float)global->font.glyph_height;
+    int total_length_px = scale * text.length * global->font.x_advance;
+    
+    return _render_text(text, x - total_length_px / 2, y, args);
 }
 

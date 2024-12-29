@@ -61,6 +61,7 @@ typedef struct {
     mesh line_mesh;
     mesh quad_mesh;
     mesh cube_mesh;
+    mesh cube_frame_mesh;
     
     int polygon_mode;
     

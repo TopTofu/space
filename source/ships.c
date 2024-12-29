@@ -149,8 +149,13 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
         
         vec3 position = vec_add(ship->position, offset);
         
+        // new part preview
         render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = global->current_part_rotation,
             .color = (color)RGB(200, 100, 100), .normal_factor = 1.1);
+        
+        // box around the connecting part
+        render_mesh_basic(global->renderer.cube_mesh, .translation = vec_add(ship->position, get_result.part->offset), 
+            .color = (color)RGBA(100, 100, 100, 120));
         
         if (global->mouse.left_down_this_frame) {
             ship_add_part(ship, position, global->current_part_rotation_target, type_id);
@@ -208,13 +213,26 @@ static void update_and_render_ship_saves_interface(game_state* state) {
     int x = pad;
     int y = pad;
     
-    int button_w = 80;
+    int button_w = 50;
     
     void* id = saves;
-    bool clicked = button(id, x, y, button_w, button_w, (color)RGB(230, 238, 156));
+    bool clicked = button(id, x, y, button_w, button_w, (color)RGB_GRAY(200));
     if (clicked) {
         toggle(saves->is_open);  
         saves->target_t = saves->is_open ? 1. : 0.;
+    }
+    
+    {
+        string buffer = string_buffer(8);
+        string_write(&buffer, "v");
+        
+        int w = 32;
+        int offset = (button_w - w) / 2;
+        
+        float angle = 180. * (1. - ease_out_back(saves->open_t));
+        ui_quad_textured(x + offset, y + offset, w, w, get_texture("ui_arrow_up")->id, 
+            .shader = get_shader("ui_quad_textured"), 
+            .rotation = quat_from_axis_angle(vec3(0, 0, 1), DEG_TO_RAD(angle)));
     }
     
     float speed = 2.0;
@@ -239,7 +257,9 @@ static void update_and_render_ship_saves_interface(game_state* state) {
     float eased_t = ease_out_circ(saves->open_t);
     int slot_y = LERP(closed_y, open_y, eased_t);
     
-    scissor(slot_x - pad, open_y + slot_w + pad, slot_w + pad * 2, open_y - closed_y - pad);
+    int scissor_y = closed_y + slot_w + pad - 3;
+    int scissor_h = (slot_w + pad) * (MAX_SHIP_SAVE_SLOTS) + 6;
+    scissor(slot_x - pad, scissor_y, slot_w + pad * 2, scissor_h);
     
     for (int i = 0; i < MAX_SHIP_SAVE_SLOTS; i++) {
         ship_save_slot* slot = &saves->slots[i];

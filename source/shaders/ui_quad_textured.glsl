@@ -8,11 +8,15 @@ layout (location = 2) in vec3 in_normal;
 
 uniform vec2 offset;
 uniform vec2 scale;
+uniform mat4 rotation;
 
 out vec2 uv;
 
 void main() {
-    gl_Position = vec4(in_position * scale + offset, 0, 1);
+    vec4 pos = vec4(in_position, 0, 1);
+    pos = rotation * pos;
+
+    gl_Position = vec4(pos.xy * scale + offset, 0, 1);
     uv = in_uv;
 }
 
