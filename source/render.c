@@ -484,8 +484,8 @@ static mesh make_quarter_tube_mesh() {
             indices[index_count++] = i * 2 + 2;
             
             indices[index_count++] = n * 2 + 1;
-            indices[index_count++] = i * 2 + 1;
             indices[index_count++] = i * 2 + 3;
+            indices[index_count++] = i * 2 + 1;
         }
     }
     
