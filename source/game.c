@@ -11,11 +11,16 @@ int debug_index_count = 12;
     [ ] save/load interface, multiple save files
     [ ] window width dependent part ui
     [ ] mouse controls for editor camera
+    [ ] show part count limit
 */
 
 // === utils
-#define push_transient(size) push_size(&global->transient_arena, size);
-#define push_permanent(size) push_size(&global->permanent_arena, size);
+static inline void* push_permanent(size_t size) {
+    return push_size(&global->permanent_arena, size);
+} 
+static inline void* push_transient(size_t size) {
+    return push_size(&global->transient_arena, size);
+} 
 
 static inline string push_string(memory_arena* arena, u32 size) {
     return (string) {
@@ -197,6 +202,7 @@ static float intersect_ray_quad(vec3 ray_origin, vec3 ray_dir, collision_quad qu
 
 // === source includes
 #include "render.c"
+#include "font.c"
 #include "camera.c"
 #include "ui.c"
 #include "ships.c"
@@ -336,10 +342,7 @@ static void update_and_render_part_buttons() {
         
         x += button_w + pad;
     }
-    
 }
-
-mesh m;
 
 static void game_init_memory(platform_info* platform) {
     assert(platform->permanent_storage);
@@ -360,20 +363,20 @@ static void game_init_memory(platform_info* platform) {
         (u8*)platform->transient_storage);
     
     load_all_shaders(state, "../source/shaders/");
+    load_all_textures(state, "../data/textures/");
+    
+    init_font(state);
 
     camera_set_default(&state->editor_camera);
     state->current_camera = &state->editor_camera;
     
-    init_renderer(state);    
+    init_renderer(state);
 
     init_ship_part_types(state);
-
-    load_ship_from_file("../ship.sp", &ship);
-    if (!ship.part_count) {
-        ship_add_part(&ship, ship.position, unit_quat(), PART_CUBE);
-    }
+    init_ship_save_slots(state);
     
-    // m = make_wing_mesh();
+    load_ship(state, &ship);
+
     init_framebuffer(&icon_fb);
     framebuffer_add_attachment(&icon_fb, GL_COLOR_ATTACHMENT, 100, 100, .wrap_t = GL_CLAMP_TO_EDGE, .wrap_s = GL_CLAMP_TO_EDGE);
     framebuffer_add_attachment(&icon_fb, GL_DEPTH_ATTACHMENT, 100, 100);
@@ -382,6 +385,7 @@ static void game_init_memory(platform_info* platform) {
     state->current_part_rotation_target = (quat) { 0, 0, 0, 1 };
     
     bind_key_input_proc(editor_controls);
+    
 }
 
 static void game_update_and_render(platform_info* platform) {
@@ -455,6 +459,7 @@ static void game_update_and_render(platform_info* platform) {
         glUseProgram(0);
     }
     
+    update_and_render_ship_saves_interface(state);
     update_and_render_part_buttons();
 }
 

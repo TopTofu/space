@@ -675,6 +675,8 @@ void init_renderer(game_state* state) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    glEnable(GL_SCISSOR_TEST);
+    
     renderer->projection_matrix = make_projection_matrix(
         window_w,  
         window_h,
@@ -696,6 +698,14 @@ void init_renderer(game_state* state) {
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_DEPTH_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
+}
+
+static inline void scissor(int x, int y, int w, int h) {
+    glScissor(x, global->platform->window_height - y, w, h);
+}
+
+static inline void scissor_reset() {
+    glScissor(0, 0, global->platform->window_width, global->platform->window_height);
 }
 
 static char* get_opengl_error_string(int code) {

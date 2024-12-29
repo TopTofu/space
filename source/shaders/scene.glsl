@@ -88,6 +88,8 @@ void main() {
     sobel = step(0.01, sobel);
     out_color = vec4(sobel, sobel, sobel, 1) * green;
 
+    return;
+
     out_color = scene;
     
     float depth = texture(scene_depth, uv).x; 

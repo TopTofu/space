@@ -998,6 +998,20 @@ float ease_out_squared(float t) {
     return 1. - (a * a);
 }
 
+float ease_out_circ(float t) {
+    float a = 1. - t;
+    return sqrt(1. - (a * a));
+}
+
 float ease_in_out_sin(float t) {
     return - (cos(PI * t) - 1.f) / 2.f;
+}
+
+float ease_out_back(float t) {
+    float c0 = 1.70158;
+    float c1 = c0 + 1.;
+    
+    float b = t - 1.;
+    
+    return 1. + c1 * (b * b * b) + c0 * (b * b);
 }

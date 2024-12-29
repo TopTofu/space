@@ -49,6 +49,19 @@ ship_info ship = { 0 };
 
 ship_part_type part_types[PART_TYPE_COUNT];
 
+typedef struct {
+    int id;
+    char* path;
+    bool used;
+} ship_save_slot;
 
-
+#define MAX_SHIP_SAVE_SLOTS 8
+typedef struct {
+    bool is_open;
+    ship_save_slot slots[MAX_SHIP_SAVE_SLOTS];
+    ship_save_slot* current_slot;
+    
+    float open_t;
+    float target_t;
+} ship_saves_interface_info;
 

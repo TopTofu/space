@@ -13,26 +13,23 @@ static inline vec3 collision_quad_get_center(collision_quad quad) {
     return vec_add(quad.a, vec_mul(vec_sub(quad.b, quad.a), 0.5f));
 }
 
-static void save_ship_to_file(char* file_path, ship_info* ship) {
-    FILE* file = fopen(file_path, "wb");
-    if (!file) {
-        report("Could not open file to save ship (path: %s)\n", file_path);
-        return;    
-    }
+static inline void ship_clear(ship_info* ship) {
+    ship->part_count = 0;
+    memset(ship->parts, 0, sizeof(ship->parts));
+}
+
+static void save_ship(game_state* state, ship_info* ship) {
+    ship_save_slot* slot = state->saves.current_slot;
+    FILE* file = fopen(slot->path, "wb");
+    if (!file) { 
+        report("Could not open save file at %s for saving of slot %i\n", slot->path, slot->id); 
+        return; 
+    }    
 
     fwrite(ship, sizeof(*ship), 1, file);
     fclose(file);
-}
-
-static void load_ship_from_file(char* file_path, ship_info* ship) {
-    FILE* file = fopen(file_path, "rb");
-    if (!file) {
-        report("Could not open file to load ship (path: %s)\n", file_path);
-        return;    
-    }
-
-    fread(ship, sizeof(*ship), 1, file);
-    fclose(file);
+    
+    report("Saved ship to slot %i\n", slot->id);
 }
 
 static void render_ship(ship_info* ship) {
@@ -66,7 +63,32 @@ static void ship_add_part(ship_info* ship, vec3 position, quat rotation, ship_pa
     part->offset = vec_sub(position, ship->position);
     part->rotation = rotation;
     
-    save_ship_to_file("../ship.sp", ship); 
+    save_ship(global, ship); 
+}
+
+static void load_ship(game_state* state, ship_info* ship) {
+    ship_save_slot* slot = state->saves.current_slot;
+    if (!slot->used) {
+        ship_clear(ship);
+        
+        save_ship(state, ship);
+        slot->used = true;
+        
+        ship_add_part(ship, ship->position, unit_quat(), PART_CUBE);
+        
+        report("Created file for slot %i\n", slot->id);
+    } else {
+        FILE* file = fopen(slot->path, "rb");
+        if (!file) {
+            report("Could not open save file %s for loading of slot %i\n", slot->path, slot->id);
+            return;
+        }
+        
+        fread(ship, sizeof(*ship), 1, file);
+        fclose(file);
+        
+        report("Loaded ship from slot %i\n", slot->id);
+    }
 }
 
 typedef struct {
@@ -144,6 +166,8 @@ static void delete_part_at_mouse() {
         get_result.part->active = false;
         ship.part_count--;
     }
+    
+    save_ship(global, &ship);
 }
 
 static void pick_part_type_at_mouse() {
@@ -152,6 +176,98 @@ static void pick_part_type_at_mouse() {
     if (get_result.part) {
         global->current_part_type_id = get_result.part->type_id;
     }
+}
+
+
+static void init_ship_save_slots(game_state* state) {
+    ship_saves_interface_info* saves = &state->saves;
+    
+    string buffer = string_buffer(32);
+    for (int i = 0; i < MAX_SHIP_SAVE_SLOTS; i++) {
+        string_write(&buffer, "../saves/ship");        
+        string_write(&buffer, i);
+        
+        saves->slots[i].id = i;  
+        saves->slots[i].path = to_c_str(buffer, push_permanent);
+        
+        FILE* file = fopen(saves->slots[i].path, "rb");
+        saves->slots[i].used = (file != 0);
+        
+        if (file) { fclose(file); }
+        
+        string_clear(&buffer);
+    }
+    
+    saves->current_slot = &saves->slots[0];
+}
+
+static void update_and_render_ship_saves_interface(game_state* state) {
+    ship_saves_interface_info* saves = &state->saves;
+    
+    int pad = 20;
+    int x = pad;
+    int y = pad;
+    
+    int button_w = 80;
+    
+    void* id = saves;
+    bool clicked = button(id, x, y, button_w, button_w, (color)RGB(230, 238, 156));
+    if (clicked) {
+        toggle(saves->is_open);  
+        saves->target_t = saves->is_open ? 1. : 0.;
+    }
+    
+    float speed = 2.0;
+    
+    if (saves->open_t < saves->target_t) {
+        saves->open_t += speed * state->time.dt;
+        saves->open_t = MIN(saves->open_t, saves->target_t);
+    } else if (saves->open_t > saves->target_t) {
+        saves->open_t -= speed * state->time.dt;
+        saves->open_t = MAX(saves->open_t, saves->target_t);
+    }
+    
+    if (saves->open_t <= 0.) { return; }
+    
+    int slot_w = 50;
+    
+    int closed_y = y;
+    int open_y = (slot_w + pad) * (MAX_SHIP_SAVE_SLOTS - 1) + closed_y + button_w + pad;
+    
+    int slot_x = pad;
+    
+    float eased_t = ease_out_circ(saves->open_t);
+    int slot_y = LERP(closed_y, open_y, eased_t);
+    
+    scissor(slot_x - pad, open_y + slot_w + pad, slot_w + pad * 2, open_y - closed_y - pad);
+    
+    for (int i = 0; i < MAX_SHIP_SAVE_SLOTS; i++) {
+        ship_save_slot* slot = &saves->slots[i];
+        
+        if (saves->open_t >= 1.) {
+            bool clicked = button(IDX(id, i + 1), slot_x, slot_y, slot_w, slot_w, (color)RGB_GRAY(255));
+            
+            if (clicked) {
+                saves->current_slot = slot;
+                
+                load_ship(state, &ship);
+            }
+        }
+        
+        if (saves->current_slot == slot) {
+            ui_quad(slot_x - 3, slot_y - 3, slot_w + 6, slot_w + 6, (color)RGB_GRAY(255));
+        } 
+        
+        ui_quad(slot_x, slot_y, slot_w, slot_w, (color)RGB_GRAY(100));
+        
+        string buffer = string_buffer(8);
+        string_write(&buffer, i);
+        render_text(buffer, slot_x, slot_y, .height = 32, .color = RGB(57, 255, 20));
+        
+        slot_y -= slot_w + pad;
+    }
+    
+    scissor_reset();
 }
 
 static void init_ship_part_types(game_state* state) {

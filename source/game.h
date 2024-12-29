@@ -212,6 +212,13 @@ typedef struct game_state game_state;
 #include "ui.h"
 #include "ships.h"
 
+typedef struct {
+    texture_info* texture;
+    float x_advance;
+    float glyph_width, glyph_height;
+    u32 glyph_count;
+} font_info;
+
 typedef struct game_state {
     platform_info* platform;
     
@@ -232,6 +239,8 @@ typedef struct game_state {
     shader_catalog shaders;
     texture_catalog textures;
     
+    font_info font;
+    
     text_input* current_text_input;
     key_input_proc* current_input_proc;
     
@@ -240,6 +249,8 @@ typedef struct game_state {
     float part_rotation_t;
     
     int current_part_type_id;
+    
+    ship_saves_interface_info saves;
 } game_state;
 
 game_state* global;
