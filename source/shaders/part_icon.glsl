@@ -33,7 +33,9 @@ void main() {
     vec4 green = vec4(57, 255, 20, 255) / 255.;
     
     sobel = step(0.01, sobel);
-    out_color = vec4(sobel, sobel, sobel, sobel) * green;
+    vec4 outline = vec4(sobel) * green;
+    
+    out_color = outline;
 
     gl_FragDepth = 0.0;
 }

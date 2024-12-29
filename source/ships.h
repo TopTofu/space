@@ -9,7 +9,7 @@ typedef enum {
     PART_TANK,
     PART_SLOPE,
     PART_WING,
-    // PART_WING_TIP,
+    PART_WING_TIP,
     PART_CONNECTOR,
     PART_QUARTER_TUBE,
     PART_FIN,
@@ -18,6 +18,8 @@ typedef enum {
     
     PART_GRABBLER,
     PART_ATTACHMENT,
+    
+    PART_GRABBER,
     
     PART_TYPE_COUNT
 } ship_part_type_id;

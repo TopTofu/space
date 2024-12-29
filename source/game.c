@@ -9,7 +9,7 @@ int debug_index_count = 12;
 /* @Todos:
     [x] handle windows resizing
     [x] save/load interface, multiple save files
-    [ ] window width dependent part ui
+    [x] window width dependent part ui
     [ ] mouse controls for editor camera
     [ ] show part count limit
 */
@@ -222,10 +222,10 @@ static bool editor_controls(game_state* state, key_event event) {
         } break;
         
         case KEY_MOUSE_DOWN: {
-            cam->controls.backward = event.is_down;
+            if (!any_hot()) { cam->controls.backward = event.is_down; }
         } break;
         case KEY_MOUSE_UP: {
-            cam->controls.forward = event.is_down;
+            if (!any_hot()) { cam->controls.forward = event.is_down; }
         } break;
         
         case KEY_W: {
@@ -286,18 +286,68 @@ static bool editor_controls(game_state* state, key_event event) {
 }
 
 framebuffer_info icon_fb;
+float scroll_t = 0;
+float scroll_to_add = 0;
 static void update_and_render_part_buttons() {
+    int window_width = global->platform->window_width;
+    int window_height = global->platform->window_height;
+
     int pad = 15;
     int button_w = 100;
     int x = pad;
     int y = global->platform->window_height - button_w - pad;
+    
+    float scroll_speed = 0.05;
     
     quat model_rotation = unit_quat();
     model_rotation = quat_mul_quat(quat_from_axis_angle(vec3(0, 1, 0), 
         DEG_TO_RAD(global->time.in_seconds * 15.)), model_rotation);
     model_rotation = quat_mul_quat(quat_from_axis_angle(vec3(1, 0, 0), DEG_TO_RAD(-30)), model_rotation);
     
-    void* id = update_and_render_part_buttons;
+    int quad_y = y - pad;
+    ui_quad(0, quad_y, global->platform->window_width, global->platform->window_height - quad_y, (color)RGB_GRAY(150));
+    
+    {
+        string buffer = string_buffer(32);
+        string_write(&buffer, ship.part_count);
+        string_write(&buffer, "/");
+        string_write(&buffer, array_count(ship.parts));
+        
+        int height = 16;
+        int width = get_text_width_single_line(buffer, height);
+        render_text(buffer, window_width - width * 1.1, quad_y - height * 1.1, .height = height, .color = (color)RGB_GRAY(100));
+    }
+    
+    bool is_over = in_rect(x, quad_y, global->platform->window_width, global->platform->window_height - quad_y);
+    if (is_over) {
+        set_hot((void*)update_and_render_part_buttons);
+        scroll_to_add -= global->mouse.scroll * scroll_speed;
+    }
+    
+    if (scroll_to_add != 0.) {
+        float add_this_frame = scroll_to_add * 0.1;
+        scroll_to_add -= add_this_frame;
+        
+        scroll_t += add_this_frame;
+        scroll_t = CLAMP(scroll_t, 0., 1.);
+    }
+    
+    int total_width = (button_w + pad) * PART_TYPE_COUNT + pad;
+    int max_offset = total_width - global->platform->window_width;
+    max_offset = MAX(max_offset, 0);
+    if (max_offset) { max_offset += (button_w + pad) * 1.5; } // @Info: add some overscroll if we can scroll at all
+    
+    int x_offset = max_offset * scroll_t;
+    x -= x_offset;
+    
+    if (max_offset) {
+        int bar_w = 300;
+        int bar_h = 10;
+        int bar_x = (window_width - bar_w) * scroll_t;
+        int bar_y = window_height - bar_h;
+        
+        ui_quad(bar_x, bar_y, bar_w, bar_h, (color)RGB_GRAY(100));
+    }
     
     for (int i = 0; i < PART_TYPE_COUNT; i++) {
         ship_part_type type = part_types[i];
@@ -306,8 +356,9 @@ static void update_and_render_part_buttons() {
         
         {   
             glBindFramebuffer(GL_FRAMEBUFFER, icon_fb.id);
+            
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glViewport(0, 0, 100, 100);
+            glViewport(0, 0, button_w, button_w);
          
             shader_info* shader = get_shader("game_object");
             glUseProgram(shader->id);
@@ -330,7 +381,8 @@ static void update_and_render_part_buttons() {
             glViewport(0, 0, global->platform->window_width, global->platform->window_height);
         }
         
-        bool clicked = button(IDX(id, i), x, y, button_w, button_w, (color)RGB(100, 100, 150));
+        void* id = &part_types[i];
+        bool clicked = button(id, x, y, button_w, button_w, (color)RGB_GRAY(100));
         if (clicked) { 
             global->current_part_type_id = i; 
            
@@ -416,13 +468,16 @@ static void game_update_and_render(platform_info* platform) {
         u32 draw_buffers[] = { 
             state->renderer.scene_texture->color_attachment_id, 
             state->renderer.scene_per_object_depth_texture->color_attachment_id,
+            state->renderer.scene_object_color_texture->color_attachment_id,
         };
         glDrawBuffers(array_count(draw_buffers), draw_buffers);
         
         float scene_clear_color[] = { 0., 0., 0., 1. };
         glClearTexImage(state->renderer.scene_texture->id, 0, GL_RGBA, GL_FLOAT, scene_clear_color);
         float per_object_depth_clear_color[] = { 1., 1., 1., 1. };
-        glClearTexImage(state->renderer.scene_per_object_depth_texture->id, 0, GL_RGBA, GL_FLOAT, scene_clear_color);
+        glClearTexImage(state->renderer.scene_per_object_depth_texture->id, 0, GL_RGBA, GL_FLOAT, per_object_depth_clear_color);
+        float object_color_clear_color[] = { 0., 0., 0., 1. };
+        glClearTexImage(state->renderer.scene_object_color_texture->id, 0, GL_RGBA, GL_FLOAT, object_color_clear_color);
         
         glClear(GL_DEPTH_BUFFER_BIT);
         
@@ -447,7 +502,8 @@ static void game_update_and_render(platform_info* platform) {
         
         shader_bind_texture(shader, state->renderer.scene_texture, "scene_texture", 0);
         shader_bind_texture(shader, state->renderer.scene_per_object_depth_texture, "scene_per_object_depth", 1);
-        shader_bind_texture(shader, state->renderer.scene_depth_texture, "scene_depth", 2);
+        shader_bind_texture(shader, state->renderer.scene_object_color_texture, "scene_object_color", 2);
+        shader_bind_texture(shader, state->renderer.scene_depth_texture, "scene_depth", 3);
         
         shader_set_uniform(shader, "far", state->current_camera->far);
         shader_set_uniform(shader, "near", state->current_camera->near);

@@ -69,21 +69,24 @@ void main() {
 #line 60
 
 uniform vec4 color;
+uniform float normal_factor;
 
 in geometry_shader_out {
     vec3 normal;
     float object_depth;
 } fs_in;
 
-layout(location = 0) out vec4 out_color;
-layout(location = 1) out vec4 object_depth; 
+layout(location = 0) out vec4 surface_normal;
+layout(location = 1) out vec4 object_depth;
+layout(location = 2) out vec4 object_color;
 
 void main() {
     vec3 unilateral_normal = fs_in.normal * 0.5 + 0.5; // between 0 and 1
-    out_color.xyz = unilateral_normal;
-    out_color.w = color.w;
+    surface_normal.xyz = unilateral_normal * normal_factor;
+    surface_normal.w = color.w;
     
     object_depth = vec4(vec3(fs_in.object_depth), 1.);
+    object_color = color;
 }
 
 

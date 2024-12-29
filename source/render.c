@@ -696,6 +696,8 @@ void init_renderer(game_state* state) {
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_per_object_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer,
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
+    renderer->scene_object_color_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
+        GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_DEPTH_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
 }
@@ -1156,9 +1158,11 @@ typedef struct {
     quat rotation;
     float scale;
     color color;
+    float normal_factor;
 } render_mesh_args;
 #define render_mesh_basic(mesh, ...) _render_mesh_basic(mesh, (render_mesh_args) {\
-    .translation = vec3(0, 0, 0), .scale_v = vec3(1, 1, 1), .rotation = unit_quat(), .scale = 1., .color = (color)RGB_GRAY(200),\
+    .translation = vec3(0, 0, 0), .scale_v = vec3(1, 1, 1), .rotation = unit_quat(), .scale = 1.,\
+    .color = (color)RGB(57, 255, 20), .normal_factor = 1.,\
     __VA_ARGS__ })
 
 static void _render_mesh_basic(mesh m, render_mesh_args args) {
@@ -1177,6 +1181,7 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     shader_set_uniform(shader, "view", view);
     shader_set_uniform(shader, "projection", proj);
     shader_set_uniform(shader, "color", args.color);
+    shader_set_uniform(shader, "normal_factor", args.normal_factor);
     
     shader_set_uniform(shader, "translation", translation);
     

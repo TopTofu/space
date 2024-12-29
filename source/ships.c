@@ -150,7 +150,7 @@ static void update_and_render_part_preview(ship_info* ship, ship_part_type_id ty
         vec3 position = vec_add(ship->position, offset);
         
         render_mesh_basic(part_types[type_id].mesh, .translation = position, .rotation = global->current_part_rotation,
-            .color = (color)RGBA(200, 100, 100, 100));
+            .color = (color)RGB(200, 100, 100), .normal_factor = 1.1);
         
         if (global->mouse.left_down_this_frame) {
             ship_add_part(ship, position, global->current_part_rotation_target, type_id);
@@ -296,10 +296,10 @@ static void init_ship_part_types(game_state* state) {
         .mesh = make_wing_mesh(),
     };
     
-    // part_types[PART_WING_TIP] = (ship_part_type) {
-    //     .id = PART_WING_TIP,
-    //     .mesh = make_wing_tip_mesh(),
-    // };
+    part_types[PART_WING_TIP] = (ship_part_type) {
+        .id = PART_WING_TIP,
+        .mesh = make_wing_tip_mesh(),
+    };
     
     part_types[PART_CONNECTOR] = (ship_part_type) {
         .id = PART_CONNECTOR,
@@ -323,17 +323,22 @@ static void init_ship_part_types(game_state* state) {
     
     part_types[PART_DRILL] = (ship_part_type) {
         .id = PART_DRILL,
-        .mesh = load_obj("../data/drill.obj"),
+        .mesh = load_obj("../data/models/drill.obj"),
     };
     
     part_types[PART_GRABBLER] = (ship_part_type) {
         .id = PART_GRABBLER,
-        .mesh = load_obj("../data/grabbler.obj"),
+        .mesh = load_obj("../data/models/grabbler.obj"),
     };
     
     part_types[PART_ATTACHMENT] = (ship_part_type) {
         .id = PART_ATTACHMENT,
-        .mesh = load_obj("../data/attachment.obj"),
+        .mesh = load_obj("../data/models/attachment.obj"),
+    };
+    
+    part_types[PART_GRABBER] = (ship_part_type) {
+        .id = PART_GRABBER,
+        .mesh = load_obj("../data/models/grabber.obj"),
     };
 }
 

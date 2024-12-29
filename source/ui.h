@@ -18,6 +18,7 @@ typedef struct {
                              global->mouse.y >= (Y) &&          \
                              global->mouse.y <= ((Y) + (H)))
 
+#define any_hot()       (global->ui.hot != 0)
 #define any_active()    (global->ui.active != 0)
 #define is_active(id)   (global->ui.active == (id))
 #define is_hot(id)      (global->ui.hot == (id))
