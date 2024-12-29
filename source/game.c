@@ -6,6 +6,13 @@
 int debug_index_count = 12;
 
 
+/* @Todos:
+    [x] handle windows resizing
+    [ ] save/load interface, multiple save files
+    [ ] window width dependent part ui
+    [ ] mouse controls for editor camera
+*/
+
 // === utils
 #define push_transient(size) push_size(&global->transient_arena, size);
 #define push_permanent(size) push_size(&global->permanent_arena, size);
@@ -452,6 +459,8 @@ static void game_update_and_render(platform_info* platform) {
 }
 
 static void game_resize_window(platform_info* platform) {
-    // @Todo: resize framebuffer
+    game_state* state = platform->permanent_storage;
+    
     glViewport(0, 0, platform->window_width, platform->window_height);
+    framebuffer_resize_all_attachments(&state->renderer.scene_framebuffer, platform->window_width, platform->window_height);
 }

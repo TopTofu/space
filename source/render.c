@@ -615,11 +615,11 @@ static framebuffer_attachment* _framebuffer_add_attachment(framebuffer_info* fra
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, result->id, 0);
         } break;
-        case GL_STENCIL_ATTACHMENT: {} break;
-        case GL_DEPTH_STENCIL_ATTACHMENT: {} break;
+        // case GL_STENCIL_ATTACHMENT: {} break;
+        // case GL_DEPTH_STENCIL_ATTACHMENT: {} break;
         
         default: {
-            report("Unsupported attachment type (%i)!\n", type);
+            report("Unsupported attachment type (%i) to add!\n", type);
             glDeleteTextures(1, &result->id);
             *result = (framebuffer_attachment) { 0 };
             result = 0;
@@ -629,6 +629,31 @@ static framebuffer_attachment* _framebuffer_add_attachment(framebuffer_info* fra
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return result;
+}
+
+static void framebuffer_resize_all_attachments(framebuffer_info* framebuffer, int new_width, int new_height) {
+    for (int i = 0; i < FRAMEBUFFER_ATTACHMENT_MAX_COUNT; i++) {
+        framebuffer_attachment* attachment = &framebuffer->attachments[i];
+        if (!attachment->id) { continue; }
+
+        glBindTexture(GL_TEXTURE_2D, attachment->id);
+
+        switch (attachment->type) {
+            case GL_COLOR_ATTACHMENT: {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, new_width, new_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            } break;
+            case GL_DEPTH_ATTACHMENT: {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, new_width, new_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+            } break;
+            
+            // case GL_STENCIL_ATTACHMENT: {} break;
+            // case GL_DEPTH_STENCIL_ATTACHMENT: {} break;
+            
+            default: { report("Unsupported attachment type (%i) to resize!\n", attachment->type); } break;
+        }
+        
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 void init_renderer(game_state* state) {
@@ -661,8 +686,10 @@ void init_renderer(game_state* state) {
     renderer->line_mesh = make_line_mesh();
     renderer->quad_mesh = make_quad_mesh();
     renderer->cube_mesh = make_cube_mesh();
-    
+
+        
     init_framebuffer(&renderer->scene_framebuffer);
+
     renderer->scene_texture = framebuffer_add_attachment(&renderer->scene_framebuffer, 
         GL_COLOR_ATTACHMENT, window_w, window_h, .wrap_s = GL_CLAMP_TO_EDGE, .wrap_t = GL_CLAMP_TO_EDGE);
     renderer->scene_per_object_depth_texture = framebuffer_add_attachment(&renderer->scene_framebuffer,
