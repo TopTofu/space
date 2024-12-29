@@ -180,10 +180,10 @@ static void init_ship_part_types(game_state* state) {
         .mesh = make_wing_mesh(),
     };
     
-    part_types[PART_WING_TIP] = (ship_part_type) {
-        .id = PART_WING_TIP,
-        .mesh = make_wing_tip_mesh(),
-    };
+    // part_types[PART_WING_TIP] = (ship_part_type) {
+    //     .id = PART_WING_TIP,
+    //     .mesh = make_wing_tip_mesh(),
+    // };
     
     part_types[PART_CONNECTOR] = (ship_part_type) {
         .id = PART_CONNECTOR,
@@ -208,6 +208,16 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_DRILL] = (ship_part_type) {
         .id = PART_DRILL,
         .mesh = load_obj("../data/drill.obj"),
+    };
+    
+    part_types[PART_GRABBLER] = (ship_part_type) {
+        .id = PART_GRABBLER,
+        .mesh = load_obj("../data/grabbler.obj"),
+    };
+    
+    part_types[PART_ATTACHMENT] = (ship_part_type) {
+        .id = PART_ATTACHMENT,
+        .mesh = load_obj("../data/attachment.obj"),
     };
 }
 

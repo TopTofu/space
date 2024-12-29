@@ -458,8 +458,8 @@ static mesh make_quarter_tube_mesh() {
     int n = 5;
     float theta = DEG_TO_RAD(360.0 / ((n - 1) * 4.));
 
-    int vertex_count = n * 2;
-    int index_count = (n - 1) * 6;
+    int vertex_count = n * 2 + 2;
+    int index_count = (n - 1) * 6 + (n - 1) * 3;
     
     int index_counter = 0;
 
@@ -478,8 +478,21 @@ static mesh make_quarter_tube_mesh() {
             indices[index_counter++] = i * 2;
             indices[index_counter++] = i * 2 + 3;
             indices[index_counter++] = i * 2 + 2;
+            
+            indices[index_count++] = n * 2;
+            indices[index_count++] = i * 2;
+            indices[index_count++] = i * 2 + 2;
+            
+            indices[index_count++] = n * 2 + 1;
+            indices[index_count++] = i * 2 + 1;
+            indices[index_count++] = i * 2 + 3;
         }
     }
+    
+    vertices[n * 2    ].p = vec3(-.5, -.5, -.5);
+    vertices[n * 2 + 1].p = vec3(-.5, -.5, 0.5);
+
+    
     
     mesh result = { .primitive = GL_TRIANGLES, 
         .scale = vec3(1, 1, 1),
