@@ -127,6 +127,7 @@ typedef union {
 
 #define FLOOR(x) floor(x)
 //((x) >= 0 ? (int)(x) : ((int)(x) - 1))
+#define sign(x) (((x) > 0) ? 1 : (((x) < 0) ? -1 : 0))
 
 #define LERP(x, y, a) ((x) * (1.-(a)) + (a)*(y)) // maps from x -> y
 #define INV_LERP(x, y, a) (((a) - (x)) / ((y) - (x))) // maps from 0 -> 1

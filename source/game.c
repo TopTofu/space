@@ -14,6 +14,9 @@ int debug_index_count = 0;
     
     [ ] mouse controls for editor camera
     [ ] clean up issues with the sobel filter rendering
+    
+    [x] q also copies the rotation
+    [x] move ship with arrow keys and space/ctrl
 */
 
 // === utils
@@ -215,6 +218,7 @@ static bool editor_controls(game_state* state, key_event event) {
 
     bool result = true;
     
+    // @Note: this switch will handle both up and down events
     switch (event.code) {
         case KEY_A: {
             cam->controls.left = event.is_down;
@@ -279,6 +283,41 @@ static bool editor_controls(game_state* state, key_event event) {
             
             state->current_part_rotation_target = quat_mul_quat(quat_from_axis_angle(axis, rad), state->current_part_rotation);
             state->part_rotation_t = 0;
+        } break;
+        
+        case KEY_LEFT: {
+            vec3 dir = state->editor_camera.forward;
+            if (ABS(dir.x) > ABS(dir.z)) { ship.target_position.z -= sign(dir.x); }
+            else { ship.target_position.x += sign(dir.z); }
+            ship.pos_t = 0;
+        } break;
+        case KEY_RIGHT: {
+            vec3 dir = state->editor_camera.forward;
+            if (ABS(dir.x) > ABS(dir.z)) { ship.target_position.z += sign(dir.x); }
+            else { ship.target_position.x -= sign(dir.z); } 
+            ship.pos_t = 0;
+        } break;
+        
+        case KEY_UP: {
+            vec3 dir = state->editor_camera.forward;
+            if (ABS(dir.x) > ABS(dir.z)) { ship.target_position.x += sign(dir.x); }
+            else { ship.target_position.z -= sign(dir.z); }
+            ship.pos_t = 0;
+        } break;
+        case KEY_DOWN: {
+            vec3 dir = state->editor_camera.forward;
+            if (ABS(dir.x) > ABS(dir.z)) { ship.target_position.x -= sign(dir.x); }
+            else { ship.target_position.z += sign(dir.z); }
+            ship.pos_t = 0;
+        } break;
+        
+        case KEY_SPACE: {
+            ship.target_position.y += 1.; 
+            ship.pos_t = 0;
+        } break;
+        case KEY_CONTROL: {
+            ship.target_position.y -= 1.; 
+            ship.pos_t = 0;
         } break;
 
         default: { result = false; } break;

@@ -52,56 +52,10 @@ vec3 kernel_y[3] = vec3[3](
     vec3( 1,  2,  1)
 );
 
-// float get_sobel_edge(sampler2D tex) {
-//     vec2 step = 1. / textureSize(tex, 0);
-    
-//     float g_x = 0;
-//     float g_y = 0;
-    
-//     for (int x = 0; x < 3; x++) {
-//         for (int y = 0; y < 3; y++) {
-//             float xn = uv.x + step.x * (x - 1);
-//             float yn = uv.y + step.y * (y - 1);
-            
-//             g_x += rgb_to_gray(texture(tex, vec2(xn, yn))) * kernelx[x][y] * 4.; // @Note this added factor removes
-//             g_y += rgb_to_gray(texture(tex, vec2(xn, yn))) * kernely[x][y] * 4.; //       some artifacts
-//         }
-//     }
-    
-//     return sqrt(g_x * g_x + g_y * g_y);
-// }
-
 float linearize_depth(float depth) {
     float ndc = depth * 2.0 - 1.0;
     float result = (2.0 * near * far) / (far + near - ndc * (far - near));
     return result;
-}
-
-float check_depth_difference() {
-    float object_depth = texture(scene_depth, uv).x;
-    float linear_depth = linearize_depth(object_depth) / far;
-    
-    float result = 0.;
-    
-    vec2 step = 1. / textureSize(scene_per_object_depth, 0);
-    
-    for (int x = 0; x < 3; x++) {
-        for (int y = 0; y < 3; y++) {
-            float xn = uv.x + step.x * (x - 1);
-            float yn = uv.y + step.y * (y - 1);
-            
-            float d = texture(scene_depth, vec2(xn, yn)).x;
-            d = linearize_depth(d) / far;
-            
-            result += linear_depth - d;
-            
-            // g_x += rgb_to_gray(texture(tex, vec2(xn, yn))) * kernelx[x][y] * 4.; // @Note this added factor removes
-            // g_y += rgb_to_gray(texture(tex, vec2(xn, yn))) * kernely[x][y] * 4.; //       some artifacts
-        }
-    }
-    
-    return result;
-    return float(result > 0);
 }
 
 float get_edge() {

@@ -619,7 +619,7 @@ typedef struct {
 
 #define framebuffer_add_attachment(framebuffer, type, width, height, ...) \
     _framebuffer_add_attachment(framebuffer, type, width, height, (add_attachment_args) { \
-    .min_filter = GL_NEAREST, .mag_filter = GL_NEAREST, .wrap_t = GL_REPEAT, .wrap_s = GL_REPEAT, __VA_ARGS__ })
+    .min_filter = GL_LINEAR, .mag_filter = GL_LINEAR, .wrap_t = GL_REPEAT, .wrap_s = GL_REPEAT, __VA_ARGS__ })
     
 static framebuffer_attachment* _framebuffer_add_attachment(framebuffer_info* framebuffer, u32 type, int width, int height, add_attachment_args args) {
     framebuffer_attachment* result = 0;

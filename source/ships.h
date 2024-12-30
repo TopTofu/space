@@ -1,7 +1,7 @@
 #pragma once
 
 #define get_type(part) (part_types[(part)->type_id])
-#define SHIP_PART_MAX_COUNT 128
+#define SHIP_PART_MAX_COUNT 512
 
 typedef enum {
     PART_CUBE,
@@ -47,6 +47,8 @@ typedef struct {
     ship_part parts[SHIP_PART_MAX_COUNT];
     
     vec3 position;
+    vec3 target_position;
+    float pos_t;
 } ship_info;
 ship_info ship = { 0 };
 

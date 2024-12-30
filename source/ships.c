@@ -31,6 +31,14 @@ static void save_ship(game_state* state, ship_info* ship) {
 }
 
 static void render_ship(ship_info* ship) {
+    float speed = 1.;
+    if (ship->pos_t < 1.) {
+        ship->pos_t += global->time.dt * speed;
+        ship->pos_t = MIN(ship->pos_t, 1.);
+    }
+    
+    ship->position = vec_lerp(ship->position, ship->target_position, ship->pos_t);
+
     for (int i = 0; i < SHIP_PART_MAX_COUNT; i++) {
         ship_part part = ship->parts[i];
         if (!part.active) { continue; }
@@ -174,6 +182,8 @@ static void pick_part_type_at_mouse() {
     
     if (get_result.part) {
         global->current_part_type_id = get_result.part->type_id;
+        global->current_part_rotation = get_result.part->rotation;
+        global->current_part_rotation_target = get_result.part->rotation;
     }
 }
 

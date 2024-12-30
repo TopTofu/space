@@ -113,7 +113,8 @@ static void update_editor_camera(game_state* state) {
     
     cam->position = cam->params.translation;
     
-    vec3 pivot = ship.position;
+    // vec3 pivot = ship.position;
+    vec3 pivot = vec3(0, 0, 0);
     
     camera_rotate_y_around_point(cam, pivot, cam->params.rotation.y);
     camera_rotate_x_around_point(cam, pivot, cam->params.rotation.x);
