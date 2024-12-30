@@ -10,8 +10,10 @@ int debug_index_count = 0;
     [x] handle windows resizing
     [x] save/load interface, multiple save files
     [x] window width dependent part ui
-    [ ] mouse controls for editor camera
     [x] show part count limit
+    
+    [ ] mouse controls for editor camera
+    [ ] clean up issues with the sobel filter rendering
 */
 
 // === utils

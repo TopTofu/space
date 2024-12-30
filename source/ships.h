@@ -14,6 +14,7 @@ typedef enum {
     PART_QUARTER_TUBE,
     PART_FIN,
     PART_CORNER,
+    PART_STEP,
     PART_DRILL,
     
     PART_GRABBLER,

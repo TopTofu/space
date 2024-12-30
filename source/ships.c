@@ -28,8 +28,6 @@ static void save_ship(game_state* state, ship_info* ship) {
 
     fwrite(ship, sizeof(*ship), 1, file);
     fclose(file);
-    
-    report("Saved ship to slot %i\n", slot->id);
 }
 
 static void render_ship(ship_info* ship) {
@@ -75,8 +73,6 @@ static void load_ship(game_state* state, ship_info* ship) {
         slot->used = true;
         
         ship_add_part(ship, ship->position, unit_quat(), PART_CUBE);
-        
-        report("Created file for slot %i\n", slot->id);
     } else {
         FILE* file = fopen(slot->path, "rb");
         if (!file) {
@@ -86,8 +82,6 @@ static void load_ship(game_state* state, ship_info* ship) {
         
         fread(ship, sizeof(*ship), 1, file);
         fclose(file);
-        
-        report("Loaded ship from slot %i\n", slot->id);
     }
 }
 
@@ -359,6 +353,11 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_GRABBER] = (ship_part_type) {
         .id = PART_GRABBER,
         .mesh = load_obj("../data/models/grabber.obj"),
+    };
+    
+    part_types[PART_STEP] = (ship_part_type) {
+        .id = PART_STEP,
+        .mesh = load_obj("../data/models/step.obj"),
     };
 }
 
