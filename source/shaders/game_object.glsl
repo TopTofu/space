@@ -14,7 +14,7 @@ uniform vec3 translation;
 
 out vertex_shader_out {
     vec4 world_position;
-    float object_depth;
+    flat float object_depth;
 } vs_out;
 
 void main() {
@@ -36,12 +36,12 @@ layout (triangle_strip, max_vertices = 3) out;
 
 in vertex_shader_out {
     vec4 world_position;
-    float object_depth;
+    flat float object_depth;
 } gs_in[];
 
 out geometry_shader_out {
     vec3 normal;
-    float object_depth;
+    flat float object_depth;
 } gs_out;
 
 void main() {
@@ -66,14 +66,14 @@ void main() {
 
 ::fragment
 #version 330 core
-#line 60
+#line 70
 
 uniform vec4 color;
 uniform float normal_factor;
 
 in geometry_shader_out {
     vec3 normal;
-    float object_depth;
+    flat float object_depth;
 } fs_in;
 
 layout(location = 0) out vec4 surface_normal;

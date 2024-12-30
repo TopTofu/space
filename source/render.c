@@ -880,7 +880,6 @@ u32 load_shader(string source) {
             string geometry_source = string_eat_to_first(&cursor, ':');
             
             geometry_id = compile_shader(geometry_source, GL_GEOMETRY_SHADER);
-        
         } else {
             string_eat_line(&cursor);
         }
@@ -1022,8 +1021,8 @@ u32 load_texture(char* path, int* w, int* h) {
     glGenTextures(1, &result);
     glBindTexture(GL_TEXTURE_2D, result);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     
