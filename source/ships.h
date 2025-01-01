@@ -22,6 +22,10 @@ typedef enum {
     
     PART_GRABBER,
     
+    PART_ROUND_PLATE,
+    PART_TRI_PLATE,
+    PART_RIGHT_TRI_PLATE,
+        
     PART_TYPE_COUNT
 } ship_part_type_id;
 

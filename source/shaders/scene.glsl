@@ -113,6 +113,8 @@ void main() {
     float edge = get_edge();
     out_color = vec4(vec3(edge), 1) * object_color;
     
+    // out_color = scene;
+    
     return;    
 /*
     

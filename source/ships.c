@@ -307,7 +307,7 @@ static void init_ship_part_types(game_state* state) {
     
     part_types[PART_TANK] = (ship_part_type) {
         .id = PART_TANK,
-        .mesh = make_tank_mesh(),
+        .mesh = make_round_plate_mesh(1.0),
     };
     
     part_types[PART_SLOPE] = (ship_part_type) {
@@ -368,6 +368,21 @@ static void init_ship_part_types(game_state* state) {
     part_types[PART_STEP] = (ship_part_type) {
         .id = PART_STEP,
         .mesh = load_obj("../data/models/step.obj"),
+    };
+    
+    part_types[PART_ROUND_PLATE] = (ship_part_type) {
+        .id = PART_ROUND_PLATE,
+        .mesh = make_round_plate_mesh(0.1),
+    };
+    
+    part_types[PART_TRI_PLATE] = (ship_part_type) {
+        .id = PART_TRI_PLATE,
+        .mesh = make_triangle_plate_mesh(0.1),
+    };
+    
+    part_types[PART_RIGHT_TRI_PLATE] = (ship_part_type) {
+        .id = PART_TRI_PLATE,
+        .mesh = make_right_angled_triangle_plate(0.1),
     };
 }
 

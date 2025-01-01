@@ -232,11 +232,67 @@ static mesh make_thruster_mesh() {
     return result;
 }
 
-mesh make_tank_mesh() {
+static mesh make_triangle_plate_mesh(float width) {
+    vertex vertices[] = {
+        { .p = vec3(-.5, -.5, 0.5) },
+        { .p = vec3(-.5, -.0, -.5) },
+        { .p = vec3(-.5, 0.5, 0.5) },
+        { .p = vec3(-.5 + width, -.5, 0.5) },
+        { .p = vec3(-.5 + width, -.0, -.5) },
+        { .p = vec3(-.5 + width, 0.5, 0.5) },
+    };
+    
+    u32 indices[] = {
+        0, 1, 2,
+        3, 5, 4,
+        0, 5, 3, 0, 2, 5,
+        0, 4, 1, 0, 3, 4,
+        2, 4, 5, 2, 1, 4, 
+    };
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices) 
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+static mesh make_right_angled_triangle_plate(float width) {
+    vertex vertices[] = {
+        { .p = vec3(-.5, -.5, 0.5) },
+        { .p = vec3(-.5, -.5, -.5) },
+        { .p = vec3(-.5, 0.5, 0.5) },
+        { .p = vec3(-.5 + width, -.5, 0.5) },
+        { .p = vec3(-.5 + width, -.5, -.5) },
+        { .p = vec3(-.5 + width, 0.5, 0.5) },
+    };
+    
+    u32 indices[] = {
+        0, 1, 2,
+        3, 5, 4,
+        0, 5, 3, 0, 2, 5,
+        0, 4, 1, 0, 3, 4,
+        2, 4, 5, 2, 1, 4, 
+    };
+    
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices) 
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, result.index_count);
+    return result;
+}
+
+static mesh make_round_plate_mesh(float width) {
     int n = 8;
     float theta = DEG_TO_RAD(360.0 / (float)n);
     
-    int index_count  = n * 6 + 3 * n;
+    int index_count  = n * 6 + (n / 2 - 1) * 12;
     int vertex_count = n * 2;
     
     vertex* vertices = push_transient(sizeof(vertices[0]) * vertex_count);
@@ -247,8 +303,8 @@ mesh make_tank_mesh() {
     for (int i = 0; i < n; i++) {
         int c = 2 * i;
         
-        vertices[c    ].p = vec3(-.5, 0.5 * cos(theta * i), 0.5 * sin(theta * i));
-        vertices[c + 1].p = vec3(0.5, 0.5 * cos(theta * i), 0.5 * sin(theta * i));
+        vertices[c    ].p = vec3(-.5,         0.5 * cos(theta * i), 0.5 * sin(theta * i));
+        vertices[c + 1].p = vec3(-.5 + width, 0.5 * cos(theta * i), 0.5 * sin(theta * i));
         
         indices[index_counter++] = (c    ) % (2 * n);
         indices[index_counter++] = (c + 1) % (2 * n);
@@ -276,6 +332,8 @@ mesh make_tank_mesh() {
         indices[index_counter++] = 1 + 2 * n - i * 2;
         indices[index_counter++] = 1 + 2 * n - (i * 2 + 2);
     }
+    
+    assert(index_counter == index_count);
     
     mesh result = { .primitive = GL_TRIANGLES, 
         .scale = vec3(1, 1, 1),
