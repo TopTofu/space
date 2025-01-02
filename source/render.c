@@ -345,6 +345,41 @@ static mesh make_round_plate_mesh(float width) {
     return result;
 }
 
+static mesh make_slant_mesh() {
+    float width = 0.1;
+    
+    vertex vertices[] = {
+        { .p = vec3(0.5, -.5,         0.5) },
+        { .p = vec3(0.5, -.5,         -.5) },
+        { .p = vec3(0.5, -.5 + width, -.5) },
+        { .p = vec3(0.5, -.5 + width, 0.5) },
+        
+        { .p = vec3(-.5, -width / 2., 0.5) },
+        { .p = vec3(-.5, -width / 2., -.5) },
+        { .p = vec3(-.5,  width / 2., -.5) },
+        { .p = vec3(-.5,  width / 2., 0.5) },
+    };
+    
+    
+    u32 indices[] = {
+        0, 1, 2, 0, 2, 3,
+        0, 3, 7, 0, 7, 4,
+        3, 2, 6, 3, 6, 7,
+        1, 5, 6, 1, 6, 2,
+        5, 6, 7, 5, 7, 4,
+        0, 4, 5, 0, 5, 1
+    };
+
+    mesh result = { .primitive = GL_TRIANGLES, 
+        .scale = vec3(1, 1, 1),
+        .rotation = unit_quat(),
+        .index_count = array_count(indices) 
+    };
+    
+    result.vao = make_vao(vertices, array_count(vertices), indices, array_count(indices));
+    return result;
+}
+
 static mesh make_slope_mesh() {
     float slope = 0.3;
 
@@ -1277,7 +1312,7 @@ static void _render_mesh_basic(mesh m, render_mesh_args args) {
     glUseProgram(shader->id);
     
     vec3 translation = vec_add(args.translation, m.translation);
-    
+
     mat4 model = make_model_matrix(translation, 
                                    vec_mul(vec_mul(args.scale_v, args.scale), m.scale), 
                                    quat_mul_quat(args.rotation, m.rotation));

@@ -404,7 +404,7 @@ static void update_and_render_part_buttons() {
             shader_info* shader = get_shader("game_object");
             glUseProgram(shader->id);
             
-            mat4 model = make_model_matrix(vec3(0, 0, 5), vec3(2, 2, 2), model_rotation);
+            mat4 model = make_model_matrix(vec3(0, 0, 5), vec_mul(type.mesh.scale, vec3(2, 2, 2)), model_rotation);
             mat4 view  = make_view_matrix(vec3(0, 0, 0), vec3(0, 0, -1), vec3(0, 1, 0), vec3(1, 0, 0));
             mat4 proj  = make_projection_matrix(icon_fb.attachments[0].width, icon_fb.attachments[0].height, 40, 0.1, 100);
 
@@ -569,6 +569,16 @@ static void game_update_and_render(platform_info* platform) {
         int height = 16;
         float width = get_text_width_single_line(buffer, height);
         render_text(buffer, platform->window_width - width * 1.1, height * 1.1, .height = height, 
+            .color = RGBA(255, 255, 255, 150));
+    }
+    
+    {
+        string buffer = string_buffer(32);
+        string_write(&buffer, "fps: ");
+        string_write(&buffer, (int)(1./state->time.dt));
+        int height = 16;
+        float width = get_text_width_single_line(buffer, height);
+        render_text(buffer, platform->window_width - width * 1.1, height * 1.1 + height * 1.5, .height = height, 
             .color = RGBA(255, 255, 255, 150));
     }
 }

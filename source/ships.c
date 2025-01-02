@@ -16,6 +16,9 @@ static inline vec3 collision_quad_get_center(collision_quad quad) {
 static inline void ship_clear(ship_info* ship) {
     ship->part_count = 0;
     memset(ship->parts, 0, sizeof(ship->parts));
+    ship->position = vec3(0, 0, 0);
+    ship->target_position = vec3(0, 0, 0);
+    ship->pos_t = 1.;
 }
 
 static void save_ship(game_state* state, ship_info* ship) {
@@ -87,7 +90,7 @@ static void load_ship(game_state* state, ship_info* ship) {
             report("Could not open save file %s for loading of slot %i\n", slot->path, slot->id);
             return;
         }
-        
+
         fread(ship, sizeof(*ship), 1, file);
         fclose(file);
     }
@@ -384,5 +387,36 @@ static void init_ship_part_types(game_state* state) {
         .id = PART_TRI_PLATE,
         .mesh = make_right_angled_triangle_plate(0.1),
     };
+    
+    part_types[PART_SLANT] = (ship_part_type) {
+        .id = PART_SLANT,
+        .mesh = make_slant_mesh(),
+    };
+    
+    part_types[PART_TANK_TURN] = (ship_part_type) {
+        .id = PART_TANK_TURN,
+        .mesh = load_obj("../data/models/tank_turn.obj"),
+    };
+    
+    part_types[PART_TANK_TURN2] = (ship_part_type) {
+        .id = PART_TANK_TURN2,
+        .mesh = load_obj("../data/models/tank_turn2.obj"),
+    };
+    part_types[PART_TANK_TURN3] = (ship_part_type) {
+        .id = PART_TANK_TURN3,
+        .mesh = load_obj("../data/models/tank_turn3.obj"),
+    };
+    
+    part_types[PART_QUARTER_TUBE_TURN] = (ship_part_type) {
+        .id = PART_QUARTER_TUBE_TURN,
+        .mesh = load_obj("../data/models/quarter_tube_turn.obj"),
+    };
+    
+    part_types[PART_BOARD] = (ship_part_type) {
+        .id = PART_BOARD,
+        .mesh = make_cube_mesh(),
+    };
+    part_types[PART_BOARD].mesh.scale = vec3(1, 0.2, 1);
+    
 }
 

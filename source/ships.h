@@ -25,6 +25,15 @@ typedef enum {
     PART_ROUND_PLATE,
     PART_TRI_PLATE,
     PART_RIGHT_TRI_PLATE,
+    PART_SLANT,
+    
+    PART_BOARD,
+    
+    PART_TANK_TURN,
+    PART_TANK_TURN2,
+    PART_TANK_TURN3,
+    
+    PART_QUARTER_TUBE_TURN,
         
     PART_TYPE_COUNT
 } ship_part_type_id;

@@ -58,9 +58,38 @@ float linearize_depth(float depth) {
     return result;
 }
 
+
+/*
+    @Info  if we find a pixel which is soundrounded by different colored pixels, it is likely that it's an z-fighting
+           artifact, so we try to detect and fix that here
+    @Speed it does result in a ton of texture reads though.. 
+*/
+float get_scene_color(vec2 to_sample) {
+    float gray_scale = rgb_to_gray(texture(scene_texture, to_sample));
+    vec2 uv_step = 1. / textureSize(scene_texture, 0);
+    
+    int diff_neighbor_count = 0;
+
+    for (int x = 0; x < 2; x++) {
+        for (int y = 0; y < 2; y++) {
+            float xn = uv.x + uv_step.x * (x - 1);
+            float yn = uv.y + uv_step.y * (y - 1);
+            
+            float g = rgb_to_gray(texture(scene_texture, vec2(xn, yn)));
+            diff_neighbor_count += int(gray_scale != g);
+        }
+    }
+    
+    if (diff_neighbor_count >= 2) {
+        gray_scale = rgb_to_gray(texture(scene_texture, to_sample + vec2(uv_step.x, uv_step.y)));
+    }
+    
+    return gray_scale;
+}
+
 float get_edge() {
     float object_depth = texture(scene_per_object_depth, uv).x;
-    // object_depth = linearize_depth(object_depth) / far;
+    object_depth = linearize_depth(object_depth) / far;
     
     float depth = texture(scene_depth, uv).x;
     depth = linearize_depth(depth) / far;
@@ -79,10 +108,13 @@ float get_edge() {
             float yn = uv.y + uv_step.y * (y - 1);
             vec2 to_sample = vec2(xn, yn);
 
-            sobel_x += rgb_to_gray(texture(scene_texture, to_sample)) * kernel_x[x][y];
-            sobel_y += rgb_to_gray(texture(scene_texture, to_sample)) * kernel_y[x][y];
+            // float gray_scale = rgb_to_gray(texture(scene_texture, to_sample));
+            float gray_scale = get_scene_color(to_sample);
+
+            sobel_x += gray_scale * kernel_x[x][y];
+            sobel_y += gray_scale * kernel_y[x][y];
             
-            object_depth_diff += object_depth - ((texture(scene_per_object_depth, to_sample).x) );
+            object_depth_diff += object_depth - (linearize_depth(texture(scene_per_object_depth, to_sample).x) / far);
             depth_diff        += depth        - (linearize_depth(texture(scene_depth,            to_sample).x) / far);
         }
     }
@@ -92,7 +124,7 @@ float get_edge() {
     
     float sobel = sqrt(sobel_x * sobel_x + sobel_y * sobel_y);
     
-    float result = float(sobel > 0.00001);
+    float result = float(sobel > 0.1);
     
     bool o = (object_depth_diff > 0.);
     bool d = (depth_diff > 0.001);
